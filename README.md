@@ -80,7 +80,8 @@ bash tool/integration.sh <device-id>
 Every script verifies the Flutter/Dart revision and first resolves dependencies
 with `--enforce-lockfile`. Native build/test commands then retain Flutter's normal
 Pub phase so it regenerates plugin registration for debug versus release (the
-`--no-pub` flag would suppress that step). CI rejects any source/lockfile drift. `tool/check.sh` formats and analyzes all Dart sources and
+`--no-pub` flag would suppress that step). CI rejects any source/lockfile drift.
+`tool/check.sh` formats and analyzes all Dart sources and
 runs every unit/widget test in `test/`. `tool/integration.sh` runs all tests in
 `integration_test/` on the explicitly selected device; it fails for a missing or
 unavailable device. The initial integration smoke checks native launch and
