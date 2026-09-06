@@ -219,7 +219,8 @@ for the next run. Archived purchased Awards can still use their retained time.
 `CommandTransaction`, for example before recording an explicitly confirmed expense
 conflict. Supply a freshly read session and the command's single clock reading;
 do not open another transaction or call a repository from its callback. Daily-goal
-bonus policy and native notification/lifecycle adapters are separate integrations.
+bonuses settle in this same transaction. Native notification/lifecycle adapters
+consume the committed session and notification intent separately.
 The session command persists schedule/cancel intents and preserves an existing
 `completionChimeHandled` flag; an OS adapter owns playback and marking it handled.
 An operation replay is historical evidence and must not independently trigger sound.
