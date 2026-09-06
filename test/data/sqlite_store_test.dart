@@ -325,7 +325,7 @@ void main() {
       final plan = [
         ...schemaMigrations,
         SchemaMigration(
-          2,
+          schemaMigrations.last.version + 1,
           (tx) => tx.execute(
             'CREATE TABLE upgrade_marker (id INTEGER PRIMARY KEY)',
           ),
@@ -358,11 +358,11 @@ void main() {
         await open(
           migrations: [
             ...schemaMigrations,
-            SchemaMigration(2, (tx) async {
+            SchemaMigration(schemaMigrations.last.version + 1, (tx) async {
               await tx.execute('CREATE TABLE should_rollback (id INTEGER)');
               await tx.rawUpdate('UPDATE groups SET name = ?', ['WRONG']);
             }),
-            SchemaMigration(3, (tx) async {
+            SchemaMigration(schemaMigrations.last.version + 2, (tx) async {
               await tx.execute('CREATE TABLE also_rollback (id INTEGER)');
               throw const FormatException('Corrupt migration fixture');
             }),
@@ -384,7 +384,7 @@ void main() {
         path,
         options: OpenDatabaseOptions(singleInstance: false),
       );
-      expect(await db.getVersion(), 1);
+      expect(await db.getVersion(), schemaMigrations.last.version);
       expect(
         await db.rawQuery(
           "SELECT name FROM sqlite_master WHERE name LIKE '%rollback'",
@@ -455,7 +455,7 @@ void main() {
     },
   );
 
-  test('real SQLITE_FULL during upgrade retains schema v1', () async {
+  test('real SQLITE_FULL during upgrade retains current schema', () async {
     f.success(await store!.write(f.seed));
     await store!.close();
     expect(
@@ -463,7 +463,7 @@ void main() {
         factory: LimitedFactory(),
         migrations: [
           ...schemaMigrations,
-          SchemaMigration(2, (tx) async {
+          SchemaMigration(schemaMigrations.last.version + 1, (tx) async {
             await tx.execute('CREATE TABLE migration_blob (value BLOB)');
             await tx.rawInsert(
               'INSERT INTO migration_blob VALUES (zeroblob(2000000))',
@@ -517,7 +517,7 @@ void main() {
           migrations: [
             ...schemaMigrations,
             SchemaMigration(
-              2,
+              schemaMigrations.last.version + 1,
               (tx) => tx.execute(
                 'ALTER TABLE groups ADD COLUMN fixture_migrated INTEGER NOT NULL DEFAULT 1',
               ),

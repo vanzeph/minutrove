@@ -689,6 +689,11 @@ void main() {
       await tester.pumpWidget(MinutroveApp(home: fixture.shell()));
       await flush(tester);
       await single(tester, 'Gaming');
+      await waitFor(
+        tester,
+        () => find.byType(CompactSessionSlot).evaluate().isNotEmpty,
+        'The committed start must reach the Home stream before advancing time.',
+      );
       fixture.clock.advance(60000);
       await tester.pump(const Duration(seconds: 1));
       expect(find.text('Finishing · 0:00'), findsOneWidget);
