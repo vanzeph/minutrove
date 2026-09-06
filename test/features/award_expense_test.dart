@@ -125,7 +125,11 @@ void main() {
     await tester.pump();
   }
 
-  Future<void> press(WidgetTester tester, String text) async {
+  Future<void> press(
+    WidgetTester tester,
+    String text, {
+    bool waitForSubmission = true,
+  }) async {
     await h.waitFor(
       tester,
       () => tester
@@ -136,6 +140,19 @@ void main() {
     await tester.ensureVisible(find.text(text));
     await tester.tap(find.text(text));
     await h.settle(tester);
+    if (waitForSubmission &&
+        (text.startsWith('Record') ||
+            text == 'Retry expense' ||
+            text == 'End current session and continue')) {
+      await h.waitFor(
+        tester,
+        () =>
+            find.text('Recording…').evaluate().isEmpty ||
+            (text != 'End current session and continue' &&
+                find.text('A session is already active').evaluate().isNotEmpty),
+        'Submission must return an error, receipt, or explicit conflict choice.',
+      );
+    }
   }
 
   Future<void> finish(WidgetTester tester) async {
@@ -246,7 +263,15 @@ void main() {
           ),
         );
       });
-      await launch(tester);
+      await launch(
+        tester,
+        home: shell(
+          read: () async {
+            await Future<void>.delayed(const Duration(milliseconds: 800));
+            return readSqliteHome(fixture.store);
+          },
+        ),
+      );
       await amount(tester, '12.50');
       await press(tester, 'Record USD 12.50');
       expect(find.text('A session is already active'), findsOneWidget);
@@ -403,7 +428,7 @@ void main() {
       final proxy = ExpenseProxy(economy)..gate = Completer<void>();
       await launch(tester, home: shell(commands: proxy));
       await amount(tester, '12.50');
-      await press(tester, 'Record USD 12.50');
+      await press(tester, 'Record USD 12.50', waitForSubmission: false);
       await h.waitFor(
         tester,
         () => proxy.operations.isNotEmpty,
