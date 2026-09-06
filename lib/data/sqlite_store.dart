@@ -42,7 +42,8 @@ final class SqliteStore {
           singleInstance: false,
           onConfigure: (database) async {
             await database.execute('PRAGMA foreign_keys = ON');
-            await database.execute('PRAGMA busy_timeout = 5000');
+            // This pragma returns a row, which Darwin rejects via execute.
+            await database.rawQuery('PRAGMA busy_timeout = 5000');
             await database.execute('PRAGMA synchronous = FULL');
           },
         ),
