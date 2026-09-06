@@ -5,7 +5,7 @@ import 'package:minutrove/data/data.dart';
 import 'package:minutrove/domain/domain.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-import 'command_coordinator_test.dart' show FaultFactory, dump;
+import 'fault_database.dart';
 import 'support.dart' as f;
 import '../support/session_fixtures.dart';
 
@@ -462,6 +462,47 @@ void main() {
         conflictChoice: SessionConflictChoice.cancel,
       ) as Failure).error,
       isA<AllowanceExceeded>(),
+    );
+  });
+
+  test('earned currency funds real pack purchases while a timed session retains its countdown', () async {
+    final q = await save(configuredQuest());
+    final a = await save(f.award());
+    final earning = await start(q);
+    clock.advance(300000);
+    await end(earning.session);
+    final purchases = SqliteAwardRedemptionRepository(
+      store: store,
+      clock: clock,
+      calendar: calendar,
+    );
+    f.success(
+      await purchases.redeemAward(
+        operationId: op(),
+        awardId: a.id,
+        expectedRevision: a.revision,
+        quantity: PurchaseQuantity(2),
+      ),
+    );
+    final spending = await start(a);
+    expect(spending.session.duration.value, 120000);
+    clock.advance(12345);
+    f.success(
+      await purchases.redeemAward(
+        operationId: op(),
+        awardId: a.id,
+        expectedRevision: a.revision,
+        quantity: PurchaseQuantity(3),
+      ),
+    );
+    final result = await end(spending.session);
+    expect(result.session.duration.value, 120000);
+    expect(result.economy.awards.single.time!.value, 287655);
+    expect(result.economy.awards.single.budget!.minorUnits, 5000);
+    expect(result.economy.wallet.balances.coins.units, 9999900);
+    expect(
+      f.success(await store.read((r) => r.projectionMismatches())),
+      isEmpty,
     );
   });
 
