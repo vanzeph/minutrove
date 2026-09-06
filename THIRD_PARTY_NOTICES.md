@@ -68,3 +68,7 @@ The Android/iOS plugin uses the operating system's SQLite library; SQLite is
 public domain. Transitive Dart packages and platform implementation versions are
 pinned in pubspec.lock; their upstream notices remain in Flutter's generated
 application license registry.
+
+Command request fingerprints use the Dart project's crypto 3.0.7 (BSD-3-Clause),
+promoted from the existing locked transitive dependency. Its license is retained
+in [CRYPTO_LICENSE](third_party/CRYPTO_LICENSE) and Flutter's license registry.
