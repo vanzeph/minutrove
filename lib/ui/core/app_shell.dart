@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'navigation.dart';
+
 /// A synthetic, stateless-data smoke surface for the native app foundation.
 /// Product features replace these placeholders as their commands become ready.
 class AppShell extends StatefulWidget {
@@ -69,22 +71,10 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: TroveNavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() => _selectedIndex = index);
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-          NavigationDestination(
-            icon: Icon(Icons.storefront_outlined),
-            label: 'Shop',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_outlined),
-            label: 'Stats',
-          ),
-        ],
+        onDestinationSelected: (index) =>
+            setState(() => _selectedIndex = index),
       ),
     );
   }
