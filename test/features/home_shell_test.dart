@@ -238,6 +238,18 @@ Future<void> settle(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 300));
 }
 
+Future<void> waitFor(
+  WidgetTester tester,
+  bool Function() ready,
+  String reason,
+) async {
+  for (var attempt = 0; attempt < 100 && !ready(); attempt++) {
+    await flush(tester);
+    await tester.pump(const Duration(milliseconds: 20));
+  }
+  expect(ready(), isTrue, reason: reason);
+}
+
 Finder launcher(String name) => find
     .descendant(
       of: find.byWidgetPredicate((w) => w is ItemTile && w.name == name),
@@ -248,7 +260,15 @@ Future<void> single(WidgetTester tester, String name) async {
   await tester.ensureVisible(launcher(name));
   await tester.tap(launcher(name));
   await tester.pump(const Duration(milliseconds: 350));
-  await flush(tester);
+  await waitFor(
+    tester,
+    () =>
+        find.byType(TroveDialog).evaluate().isNotEmpty ||
+        tester
+            .widgetList<ItemTile>(find.byType(ItemTile))
+            .any((tile) => tile.name == name && tile.onActivate != null),
+    'The launch must finish or show its action dialog.',
+  );
 }
 
 void main() {
@@ -318,6 +338,11 @@ void main() {
       expect(fixture.openedSessions, isEmpty);
       await tester.pump(const Duration(milliseconds: 200));
       await flush(tester);
+      await waitFor(
+        tester,
+        () => fixture.openedSessions.length == 1,
+        'The committed start must open exactly one session.',
+      );
       expect(fixture.openedSessions, hasLength(1));
       await tester.runAsync(() async {
         final data = await fixture.read();
@@ -510,6 +535,11 @@ void main() {
         expect(data.activeSession!.itemSnapshot.name, 'Read');
         expect(data.wallet.balances.coins.units, 10000);
       });
+      await waitFor(
+        tester,
+        () => fixture.openedSessions.length == 1,
+        'The committed start must open exactly one session.',
+      );
       expect(fixture.openedSessions, hasLength(1));
       await tester.pumpWidget(const SizedBox());
       await flush(tester);
@@ -541,6 +571,11 @@ void main() {
         await flush(tester);
       }
       await tester.ensureVisible(find.text('Done'));
+      await waitFor(
+        tester,
+        () => find.text('Done').hitTestable().evaluate().isNotEmpty,
+        'The saved receipt or layout must finish before Done can be activated.',
+      );
       await tester.pump();
       await tester.tap(find.text('Done'));
       await settle(tester);
@@ -702,8 +737,14 @@ void main() {
         await flush(tester);
       }
       await tester.ensureVisible(find.text('Done'));
+      await waitFor(
+        tester,
+        () => find.text('Done').hitTestable().evaluate().isNotEmpty,
+        'The saved receipt or layout must finish before Done can be activated.',
+      );
       await tester.tap(find.text('Done'));
       await settle(tester);
+      expect(find.byType(ItemEditor), findsNothing);
       expect(find.text('Make progress'), findsOneWidget);
       expect(find.text('Ungrouped'), findsNothing);
       await tester.runAsync(() async {
