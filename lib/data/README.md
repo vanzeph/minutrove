@@ -185,3 +185,40 @@ commands do not settle or modify an active session.
 
 `flutter test test/data/item_repository_test.dart` verifies these commands with
 real SQLite, including persisted duplicate replay and conflicting revisions.
+
+## Award pack redemption
+
+`SqliteAwardRedemptionRepository(store: store, clock: clock, calendar: calendar)`
+provides the purchase and read methods of `EconomyRepository`. Compose it with the
+same live store as item/session commands; the complete economy adapter delegates
+`watchWallet`, `watchAwards`, `previewAward`, and `redeemAward` to it and supplies
+expense/session settlement separately. No schema or domain port changes are
+required. Ledger IDs default to random UUIDs; tests may inject a UUID factory.
+
+`previewAward` reads the current item, wallet and pooled allowance in one snapshot.
+Its quote contains the item revision, exact joint price, grants, remaining wallet,
+and wallet-based maximum affordable whole-pack quantity. Per-purchase and pooled
+allowance arithmetic must also fit durable integer bounds. Preview creates no
+operation, session or ledger record; cancellation discards it. Read failures stay
+`StorageUnavailable`; business rejections retain their typed errors.
+
+Pass that quote's revision as `expectedRevision` to `redeemAward`. Confirmation
+rechecks the current item and balances inside `CommandCoordinator`, posts both
+required currency debits and every grant in one batch, and adds to one allowance
+row per Award. A stale revision returns `StaleRevision`; request a new preview and
+user confirmation. Changed wallet funds are checked at confirmation. Archived
+Awards cannot be purchased, but their existing allowances remain observable.
+Purchases during running or paused sessions preserve the session and notification
+intent. Watches include exhausted balances; Home filters `isExhausted`.
+
+Keep the same operation ID and exact arguments for a retry after an uncertain
+response. Matching duplicates return the original committed `EconomicState`,
+even after later purchases, definition edits, archive or restart. A different
+Award, revision or quantity with that ID returns `InvalidInput`. Failures reserve
+no ID and change neither wallet, allowance nor history.
+
+`flutter test test/data/award_redemption_repository_test.dart` covers the 45 + 30
+= 75 minute example, every price/grant dimension combination, affordability,
+stale quotes, concurrent purchases, durable replay, signed-64-bit limits and
+failure at every purchase write and both COMMIT boundaries. All fixtures are
+synthetic. These adapter tests do not claim UI or physical-device coverage.
