@@ -45,7 +45,7 @@ jobs:
           distribution: temurin
           java-version: '17.0.20.1+1'
       - name: Verify Java runtime
-        run: java -XshowSettings:properties -version 2>&1 | grep -F 'java.runtime.version = 17.0.20.1+1'
+        run: java -XshowSettings:properties -version 2>&1 | grep -E '^ *java.runtime.version = 17\.0\.20\.1\+1$'
       - name: Install pinned Flutter and Android components
         run: |
           bash tool/install_flutter.sh "$RUNNER_TEMP/flutter"
