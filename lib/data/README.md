@@ -31,10 +31,10 @@ records before returning the result. Throw a `DomainError` to reject the entire
 command. Returning a `Failure` also rolls back. Await every storage method and
 let failures propagate; do not swallow a failed write inside a transaction.
 
-These are persistence primitives, not implementations of the product command
-ports. The item and economic command adapters supply expected-revision checks,
-history-safe edits, operation fingerprint comparison, duplicate result replay,
-clock reconciliation, and goal calculations. Existing domain ports are unchanged.
+The record adapters are persistence primitives. `CommandCoordinator` adds shared
+idempotent execution, revision guards, and ledger-driven projections; product
+command adapters supply history-safe edits, quotes, clock reconciliation, and
+goal calculations. Existing domain ports are unchanged.
 Use `operation<T>(id)` and `insertOperation(Operation<T>)` to retrieve and persist
 original results; unique operation IDs reject accidental duplicate inserts.
 `RecordCodec` supports items, groups, item lists, economic/session results,
@@ -84,6 +84,69 @@ remain unchanged when later migrations are added. Tests independently open that
 fixture, upgrade it, inject failing upgrade steps and real `SQLITE_FULL`, and
 reopen the original data. Portable backup validation and atomic file replacement
 belong to the backup adapter, not this migration API.
+
+## Atomic command coordinator
+
+Construct `CommandCoordinator(store)` over the same live store used by all
+repositories. `execute<T>` takes an operation ID, a `CommandRequest`, a
+`committedAt` callback, and an asynchronous action. It checks the saved operation
+before running either callback. Matching IDs replay the original durable result,
+even after later edits or a restart. A changed command kind, request fingerprint,
+or requested result type returns `InvalidInput` without executing the action.
+Only successful commands reserve an operation ID. After a storage failure,
+resolve the storage condition (reopen the same file if COMMIT was uncertain),
+then retry the same ID and arguments.
+
+`CommandRequest.arguments` must include **every** caller-controlled input:
+entity IDs, expected revisions, quantity, expense currency/precision/amount, and
+explicit conflict choices. Use UUID strings, integer durable units, enum names,
+booleans, nulls, lists and string-keyed maps; never use floating-point amounts.
+The constructor freezes a SHA-256 digest of versioned canonical JSON. Map order
+does not matter; list order, missing fields and explicit nulls do. Exclude current
+time, generated record IDs and derived values. Keep request encoding stable when
+updating adapters so previously committed operations remain replayable.
+
+Inside the action, the `CommandTransaction` provides:
+
+- `records`: the same transaction for sessions, intervals, remainders, daily
+  achievements and notification intents. Do not open another store transaction,
+  persist a second operation row, or call an OS/network service from the action.
+- `requireItem`, `requireSession`, `requireWallet`, and `requireAward`: read and
+  compare expected revisions inside the serialized transaction. A null expected
+  Award revision means its pooled balance must not exist. Missing items/sessions
+  return `NotFound`; changed revisions return `StaleRevision`.
+- `postLedger(entries)`: validate operation attribution, stored item/session
+  snapshots and allowance dimensions; append entries and derive wallet and Award
+  projections together. Callers provide unique ledger UUIDs and this command's
+  operation ID. Domain commands determine the postings after checking their
+  business rules against current transactional state. For example, redemption
+  calls `requireItem` before deriving the current price and grants. Session
+  settlement instead attributes entries to its immutable historical revision.
+- `economicState()`: return the final wallet, all pooled balances, active session,
+  and this operation's entries/achievements after all related mutations.
+
+Ledger totals are accumulated with `BigInt` and narrowed only after checking
+nonnegative signed-64-bit bounds. Wallet deficits report the affected currencies;
+allowance deficits report `AllowanceExceeded`; overflow reports `NumericOverflow`.
+Each affected projection revision advances once per `postLedger` batch. Quest
+time is activity history, not an owned allowance; real budget currencies are
+checked individually. Exhausted Awards retain their declared dimensions.
+
+Return a codec-supported value; `execute` detaches it, persists it with the
+request fingerprint, and acknowledges only after COMMIT. Economic/session results
+are checked against the final saved state so an earlier snapshot cannot be
+acknowledged. Any rejection rolls back the operation and every related write.
+The store also independently verifies ledger/projection consistency at COMMIT.
+Do not catch and suppress failures inside the callback. Every write must be
+awaited before returning.
+
+`test/data/command_coordinator_test.dart` includes complete command compositions,
+24 concurrent duplicate submissions, replay after reopening, stale and competing
+revision checks, currency/allowance limits, and SQL failure injection. The failure
+matrix interrupts every write in a composition containing session progress,
+remainders, achievement, wallet/allowance postings and notification intent, plus
+both sides of COMMIT. It compares the entire recovered database with the original
+or fully committed records and then verifies an identical, exactly-once retry.
 
 Run `flutter test test/data --reporter expanded`. CI additionally runs all domain
 and widget tests, analysis, and Android/iOS builds. FFI tests exercise native
