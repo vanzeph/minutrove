@@ -328,6 +328,22 @@ class StoreReader {
     return rows.single['found'] == 1;
   }
 
+  /// Frozen day assignments include activity with no whole currency earned yet.
+  Future<bool> hasActivityOn(ItemId id, DayKey day) async {
+    final date = RecordCodec.day(day);
+    final rows = await _db.rawQuery(
+      '''SELECT EXISTS(SELECT 1 FROM active_intervals a
+        JOIN sessions s ON s.id = a.session_id
+        WHERE s.item_id = ? AND a.assigned_day = ? AND a.active_ms > 0)
+      OR EXISTS(SELECT 1 FROM ledger_entries
+        WHERE item_id = ? AND assigned_day = ? AND delta != 0)
+      OR EXISTS(SELECT 1 FROM daily_achievements
+        WHERE quest_id = ? AND day = ?) AS found''',
+      [id.value, date, id.value, date, id.value, date],
+    );
+    return rows.single['found'] == 1;
+  }
+
   /// BigInt aggregation avoids SQL SUM overflow even when the final total fits.
   /// Returns mismatch labels only; does not repair or rewrite history.
   Future<List<String>> projectionMismatches() async {
