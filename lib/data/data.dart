@@ -3,6 +3,7 @@ library;
 
 export 'award_redemption_repository.dart';
 export 'command_coordinator.dart';
+export 'economy_repository.dart';
 export 'item_repository.dart';
 export 'record_codec.dart';
 export 'schema.dart' show SchemaMigration, schemaMigrations;

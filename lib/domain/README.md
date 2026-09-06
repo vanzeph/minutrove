@@ -68,3 +68,11 @@ Economy calculations reuse those durable values:
 
 These functions perform no persistence or command deduplication. Adapters still
 validate item/balance revisions and commit the resulting state atomically.
+
+`awardConsumptionActions(balance)` returns the usable time/expense actions from
+positive pooled dimensions. Combined allowances offer an explicit choice while
+both remain positive. A zero dimension is unavailable; the other stays usable,
+and exhaustion returns an empty immutable list. This helper has no accounting
+side effect: timed use calls `SessionRepository`, and actual expenses call
+`EconomyRepository.recordExpense` with the observed balance revision and the
+user's explicit session-conflict choice.
