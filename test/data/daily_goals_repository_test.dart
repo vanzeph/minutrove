@@ -477,6 +477,60 @@ void main() {
     },
   );
 
+  test('expense conflict settlement commits the daily bonus in the expense transaction', () async {
+    final quest = await saveGoal();
+    final award = f.success(
+      await items.saveItem(
+        operationId: op(),
+        item: f.award(),
+        expectedRevision: null,
+      ),
+    );
+    final economy = SqliteEconomyRepository(
+      store: store,
+      clock: clock,
+      calendar: calendar,
+    );
+    var s = await start(quest);
+    clock.advance(30000);
+    await settle(s, end: true);
+    final bought = f.success(
+      await economy.redeemAward(
+        operationId: op(),
+        awardId: award.id,
+        expectedRevision: award.revision,
+        quantity: PurchaseQuantity(1),
+      ),
+    );
+    final balance = bought.awards.single;
+    s = await start(quest);
+    clock.advance(30000);
+    final id = op();
+    Future<Result<EconomicState>> expense() => economy.recordExpense(
+      operationId: id,
+      awardId: award.id,
+      expectedBalanceRevision: balance.revision,
+      expense: BudgetAmount(balance.budget!.currency, 100),
+      conflictChoice: SessionConflictChoice.endCurrentAndContinue,
+    );
+    final result = f.success(await expense());
+    expect(result.activeSession, isNull);
+    expect(result.achievements.single.operationId, id);
+    expect(result.wallet.balances.coins.units, 1059980);
+    expect(result.wallet.balances.gems.units, 2000000);
+    expect(
+      result.awards.single.budget!.minorUnits,
+      balance.budget!.minorUnits - 100,
+    );
+    expect(
+      f.success(await sessions.getSession(s.id))!.status,
+      SessionStatus.ended,
+    );
+    expect(result.entries.every((e) => e.operationId == id), isTrue);
+    expect(codec.encode(f.success(await expense())), codec.encode(result));
+    expect(await achievements(quest), hasLength(1));
+  });
+
   test('every two-day bonus write and both COMMIT failures recover atomically and retry once', () async {
     clock.utc = DateTime.utc(2026, 1, 15, 23, 59);
     final quest = await saveGoal();

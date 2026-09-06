@@ -316,3 +316,43 @@ Its fault matrix interrupts each two-day settlement write and both sides of
 COMMIT, then verifies a whole-database rollback or original committed replay.
 `reporting_calendar_test.dart` verifies actual IANA transitions. These tests use
 synthetic records and do not assert physical-device lifecycle or UI acceptance.
+
+## Award consumption
+
+`SqliteEconomyRepository(store: store, clock: clock, calendar: calendar)` implements
+all of `EconomyRepository`, delegating purchase/read commands to the existing
+redemption adapter. Compose it with `SqliteSessionRepository` over the same store.
+Timed use starts from the pooled time, pauses without consumption, and settles
+only active milliseconds on early end or completion; new purchases do not extend
+an existing run. No consumption command refunds Coins or Gems.
+
+`recordExpense` accepts a `BudgetAmount` parsed with pinned currency metadata and
+the last observed **balance** revision. It requires a positive expense in the same
+currency and precision, within the remaining budget. Validation failures and
+stale revisions have no effect. Archived purchased allowances remain spendable.
+The expense uses the current item revision for history and the current reporting
+zone; an existing session keeps its own snapshot and zone.
+
+A running or paused session returns `ActiveSessionConflict` for `cancel`, even
+when it belongs to the same Award. Only an explicit user choice may supply
+`endCurrentAndContinue`. That command settles the old session, cancels its durable
+notification intent, posts the expense, and returns the final economy in one
+transaction. Validate the observed balance revision before same-Award settlement
+advances it. Retry the original operation ID and every original argument after an
+uncertain response; duplicate replay returns the original result without another
+clock read or settlement. Refresh state and request a fresh confirmation after a
+stale revision. Notification adapters reconcile the committed intent separately.
+
+Use `awardConsumptionActions(balance)` for Home routing: two positive dimensions
+present Use time / Record expense; one remaining dimension offers that action;
+exhaustion offers neither. Routing is read-only, and command validation remains
+authoritative. Watches retain exhausted rows and archived balances; Home filters
+`isExhausted`. Definition/history survive exhaustion and a later purchase refills
+the same row.
+
+`flutter test test/data/economy_repository_test.dart` exercises actual earn → buy
+→ consume commands, exact expense arithmetic, both consumption orders, paused
+conflicts, same-Award settlement, stale/concurrent requests, restart replay,
+archived allowances, and every SQL write/COMMIT failure boundary for both Quest
+and Award conflict settlement. These synthetic SQLite tests cover command and
+routing behavior; downstream feature/device tasks verify the native UI.
