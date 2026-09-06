@@ -136,6 +136,11 @@ feature boundaries. Only `android/` and `ios/` are generated platform targets.
 There is no web target, hosted service, account, cloud sync, or app distribution.
 Product data will remain local, with manual file backup and restore.
 
+The live [Home/navigation feature](lib/features/home/README.md) composes the
+shared repositories and feature routes; its [synthetic UI evidence](docs/ui-evidence/home/README.md)
+covers mixed groups, accessible configuration and the persistent timer. Native
+startup and the remaining feature screens supply the app-level dependencies.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow.
 
 ## License
