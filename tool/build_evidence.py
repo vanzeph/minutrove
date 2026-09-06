@@ -25,10 +25,19 @@ def unsigned_bundle(path):
             raise SystemExit(f"Unexpected signing material in {path.name}")
 
 
-def unsigned_app(path):
-    result = subprocess.run(["codesign", "--display", str(path)], capture_output=True, text=True)
-    if result.returncode == 0 or "not signed at all" not in result.stderr:
-        raise SystemExit(f"Could not verify unsigned app: {path.name}: {result.stderr}")
+def apple_signing(path):
+    if (path / "embedded.mobileprovision").exists():
+        raise SystemExit(f"Unexpected provisioning profile: {path.name}")
+    result = subprocess.run(["codesign", "--display", "--verbose=4", str(path)],
+                            capture_output=True, text=True)
+    if result.returncode != 0 and "not signed at all" in result.stderr:
+        return "unsigned"
+    # Apple Silicon simulator executables can have linker-generated ad-hoc
+    # signatures even with --no-codesign; these use no certificate or identity.
+    if (result.returncode == 0 and "Signature=adhoc" in result.stderr and
+            "Authority=" not in result.stderr and "TeamIdentifier=not set" in result.stderr):
+        return "ad-hoc; no signing identity or provisioning profile"
+    raise SystemExit(f"Unexpected Apple signing identity: {path.name}: {result.stderr}")
 
 
 def artifact(path, target, signing):
@@ -84,13 +93,13 @@ def main(target):
     elif target == "ios":
         simulator = "build/ios/iphonesimulator/Runner.app"
         archive = "build/ios/archive/Runner.xcarchive"
-        unsigned_app(ROOT / simulator)
-        unsigned_app(ROOT / archive / "Products/Applications/Runner.app")
+        simulator_signing = apple_signing(ROOT / simulator)
+        archive_signing = apple_signing(ROOT / archive / "Products/Applications/Runner.app")
         evidence["xcode"] = command("xcodebuild", "-version")
         evidence["ios_sdk"] = command("xcrun", "--sdk", "iphoneos", "--show-sdk-version")
         evidence["macos"] = command("sw_vers", "-productVersion")
-        evidence["artifacts"] = [artifact(simulator, "ios-simulator-app", "unsigned"),
-                                 artifact(archive, "ios-device-xcarchive", "unsigned; no IPA exported")]
+        evidence["artifacts"] = [artifact(simulator, "ios-simulator-app", simulator_signing),
+                                 artifact(archive, "ios-device-xcarchive", archive_signing + "; no IPA exported")]
     else:
         raise SystemExit("Expected android or ios")
     encoded = json.dumps(evidence, indent=2) + "\n"

@@ -88,9 +88,12 @@ navigation. Add consequential native journeys there as features arrive.
 | --- | --- | --- |
 | `build/app/outputs/flutter-apk/app-debug.apk` | `flutter build apk --debug --no-pub` | Debug signed; installable development APK |
 | `build/app/outputs/bundle/release/app-release.aab` | `flutter build appbundle --release --no-pub` | Unsigned; cannot be installed directly |
-| `build/ios/iphonesimulator/Runner.app` | `flutter build ios --simulator --debug --no-codesign --no-pub` | Unsigned simulator app |
+| `build/ios/iphonesimulator/Runner.app` | `flutter build ios --simulator --debug --no-codesign --no-pub` | No signing identity; Apple Silicon may add an ad-hoc signature |
 | `build/ios/archive/Runner.xcarchive` | `flutter build ipa --release --no-codesign --no-pub` | Unsigned device archive; no IPA export or device install |
 
+The scripts reject certificate-signed Apple outputs and record unsigned or
+linker-generated ad-hoc signing accurately. Ad-hoc signatures use no developer
+identity or provisioning profile and do not authorize device distribution.
 The scripts verify signing state and write `build/evidence/android.json` or
 `ios.json` with source commit, dirty-checkout status, app version, actual
 toolchain/host, target, size and SHA-256. iOS directories are packaged locally as
