@@ -1,0 +1,78 @@
+name: Native checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  FLUTTER_SUPPRESS_ANALYTICS: true
+
+jobs:
+  android:
+    name: Analyze, test, Android
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned Flutter
+        run: |
+          bash tool/install_flutter.sh "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Verify toolchain and resolve locked dependencies
+        run: |
+          python3 tool/verify_toolchain.py
+          flutter pub get --enforce-lockfile
+          flutter doctor -v
+          java -version
+      - name: Format, analyze, and test
+        run: |
+          dart format --output=none --set-exit-if-changed lib test
+          flutter analyze --fatal-infos
+          flutter test --reporter expanded
+      - name: Build Android development APK
+        run: |
+          flutter build apk --debug --no-pub
+          sha256sum build/app/outputs/flutter-apk/app-debug.apk
+          echo "Development APK is debug signed; source: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+  ios:
+    name: iOS simulator
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Flutter
+        run: |
+          bash tool/install_flutter.sh "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Verify toolchain and resolve locked dependencies
+        run: |
+          python3 tool/verify_toolchain.py
+          flutter pub get --enforce-lockfile
+          flutter doctor -v
+          xcodebuild -version
+          sw_vers
+      - name: Build unsigned iOS simulator app
+        run: |
+          flutter build ios --simulator --debug --no-codesign --no-pub
+          test -d build/ios/iphonesimulator/Runner.app
+          shasum -a 256 build/ios/iphonesimulator/Runner.app/Runner
+          echo "Unsigned simulator app built from $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
