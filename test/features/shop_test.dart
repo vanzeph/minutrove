@@ -621,7 +621,14 @@ void main() {
           ),
         );
       });
-      await flush(tester);
+      await waitFor(
+        tester,
+        () => find
+            .text('This Award is no longer available for purchase.')
+            .evaluate()
+            .isNotEmpty,
+        'The committed archive reaches the dialog.',
+      );
       expect(
         find.text('This Award is no longer available for purchase.'),
         findsOneWidget,
@@ -646,7 +653,12 @@ void main() {
     var failed = true;
     Stream<HomeData> watch() {
       if (failed) throw StateError('unavailable');
-      return watchSqliteHome(fixture.store);
+      return watchSqliteHome(fixture.store).asyncMap((data) async {
+        // Exercise real asynchronous recovery instead of assuming a fixed
+        // number of pumped frames also completes the database read on CI.
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+        return data;
+      });
     }
 
     await tester.pumpWidget(
@@ -668,7 +680,11 @@ void main() {
     expect(find.text('Redeem Gaming'), findsNothing);
     failed = false;
     await tester.tap(find.text('Retry loading Shop'));
-    await settle(tester);
+    await waitFor(
+      tester,
+      () => find.text('Redeem Gaming').evaluate().isNotEmpty,
+      'The retried committed read makes the offer available.',
+    );
     expect(find.text('Redeem Gaming'), findsOneWidget);
   });
 
