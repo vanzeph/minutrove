@@ -47,6 +47,11 @@ flutter {
 }
 
 dependencies {
+    constraints {
+        add("debugImplementation", "junit:junit:4.13.2") {
+            because("Align Flutter integration_test with the Android instrumentation runner")
+        }
+    }
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("junit:junit:4.13.2")
 }
