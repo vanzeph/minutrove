@@ -14,6 +14,11 @@ final List<SchemaMigration> schemaMigrations = List.unmodifiable([
       await transaction.execute(statement);
     }
   }),
+  SchemaMigration(2, (transaction) async {
+    await transaction.execute(
+      'CREATE INDEX achievements_by_day ON daily_achievements(day, quest_id)',
+    );
+  }),
 ]);
 
 // Avoid newer SQLite-only syntax: native sqflite uses the OS SQLite library.

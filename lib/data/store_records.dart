@@ -2,6 +2,7 @@ import 'package:sqflite_common/sqlite_api.dart';
 
 import '../domain/domain.dart';
 import 'record_codec.dart';
+import 'stats_reader.dart';
 
 /// A transaction-scoped view. Do not retain it beyond its callback, nest store
 /// transactions, or await user interaction while holding a transaction. A
@@ -10,6 +11,10 @@ class StoreReader {
   StoreReader(this._db, this.codec);
   final DatabaseExecutor _db;
   final RecordCodec codec;
+
+  /// Bounded, ledger-derived statistics inside this same read snapshot.
+  Future<List<StatsBucket>> statistics(StatsQuery query) =>
+      readStatistics(_db, query);
 
   Future<List<Map<String, Object?>>> _rows(
     String table, {

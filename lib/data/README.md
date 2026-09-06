@@ -358,3 +358,48 @@ conflicts, same-Award settlement, stale/concurrent requests, restart replay,
 archived allowances, and every SQL write/COMMIT failure boundary for both Quest
 and Award conflict settlement. These synthetic SQLite tests cover command and
 routing behavior; downstream feature/device tasks verify the native UI.
+
+## Ledger-derived statistics
+
+`SqliteStatsRepository(store: store)` implements the existing `StatsRepository`
+port over one serialized read snapshot. Queries never settle a running session
+or change history. Pass a compatible `StatsQuery`; individual filters validate
+item type and allowance currency, including archived definitions. Missing items,
+incompatible metrics, unavailable storage and aggregate overflow return typed
+failures. Item discovery continues through `ItemRepository`, which includes
+archived history.
+
+Values remain exact integer milliseconds, currency millionths, budget minor
+units in the selected ISO currency/precision, or daily-achievement counts.
+Quest time and positive earnings use Quest history; Award usage and negative
+spending use Award history. Purchase grants are excluded from usage. Earned
+amounts include committed goal bonuses; goal completion counts achievements,
+including achievements with a zero bonus. No percentages or unlike-unit totals
+are inferred.
+
+Bucket `start`/`end` are **UTC-encoded civil calendar labels**, not physical UTC
+instants to convert to the device zone. The query's `DayKey` selects frozen event
+dates: 24 hours for Daily, Monday–Sunday for Weekly, calendar days for Monthly,
+and 12 calendar months for Yearly. Missing labels contain zero. Repeated DST
+hours combine under their civil-hour label; missing hours remain zero. Settled
+time postings split across actual hours and offset transitions using the pinned
+IANA rules; currency/expense/achievement postings use their saved event UTC and
+offset. A session's ordinary currency posting is attributed at its recorded
+interval start, while a goal bonus uses its recorded threshold instant. Changing
+current settings or archiving an item never rebuckets historical dates.
+
+Date-bounded SQL aggregation returns at most 31 rows for non-time queries and
+larger periods. Integer high/low sums avoid SQLite REAL conversion and allow an
+explicit signed-64-bit result check. Daily time queries process fixed 512-row
+pages and retain only 24 totals; they never load sessions or the entire ledger.
+The existing ledger date index and schema v2's additive achievement date index
+serve these queries. Schema v1 and its frozen fixture remain unchanged; the v2
+upgrade adds no data columns and rewrites no history.
+
+`flutter test test/data/stats_repository_test.dart test/data/sqlite_store_test.dart`
+checks real earn/purchase/consume transactions, midnight, DST in both directions
+and half-hour transitions, leap dates, pause, archived history, prospective zone
+edits, currency separation, exact overflow, migration recovery, and a synthetic
+21,100-row multi-year history with a daily result spanning multiple pages. This
+is adapter evidence; chart interactions and physical-device performance remain
+in the downstream Stats and native acceptance tasks.
