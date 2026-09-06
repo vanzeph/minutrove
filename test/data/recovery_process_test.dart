@@ -20,7 +20,7 @@ void main() {
     String boot = 'boot-a',
   }) async {
     final process = await Process.start('dart', [
-      '--packages=.dart_tool/package_config.json',
+      'run', // Resolve sqlite3 native assets on Linux as well as macOS.
       'test/support/recovery_process.dart',
       '${directory.path}/durable.db',
       mode,
@@ -30,17 +30,26 @@ void main() {
       '$operation',
     ]);
     final errors = process.stderr.transform(utf8.decoder).join();
+    int? fixturePid;
     try {
       final line = await process.stdout
           .transform(utf8.decoder)
           .transform(const LineSplitter())
+          .where((line) => line.startsWith('{"fixturePid":'))
           .first
           .timeout(const Duration(seconds: 30));
-      return jsonDecode(line) as Map<String, dynamic>;
+      final result = jsonDecode(line) as Map<String, dynamic>;
+      fixturePid = result.remove('fixturePid') as int;
+      return result;
     } catch (_) {
       process.kill(ProcessSignal.sigkill);
       throw StateError('Recovery subprocess failed: ${await errors}');
     } finally {
+      // `dart run` may host the fixture in a child VM. Kill the acknowledged
+      // fixture itself, as well as the launcher, so no live connection survives.
+      if (fixturePid != null) {
+        Process.killPid(fixturePid, ProcessSignal.sigkill);
+      }
       process.kill(ProcessSignal.sigkill);
       await process.exitCode;
     }

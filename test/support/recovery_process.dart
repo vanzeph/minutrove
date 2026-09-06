@@ -110,6 +110,7 @@ Future<void> main(List<String> args) async {
   final active = f.success(await store.read((r) => r.activeSession()));
   stdout.writeln(
     jsonEncode({
+      'fixturePid': pid,
       'status': session!.status.name,
       'settled': session.settled.value,
       'coins': wallet.balances.coins.units,
