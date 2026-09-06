@@ -151,20 +151,8 @@ Result<RedemptionPreview> previewRedemption({
   }
   try {
     final price = config.price.times(quantity.value);
-    final coinsShort = price.coins.units > wallet.coins.units;
-    final gemsShort = price.gems.units > wallet.gems.units;
-    if (coinsShort || gemsShort) {
-      return Failure(InsufficientFunds(coins: coinsShort, gems: gemsShort));
-    }
-    var maximum = maxStoredInteger;
-    for (final pair in [
-      (wallet.coins.units, config.price.coins.units),
-      (wallet.gems.units, config.price.gems.units),
-    ]) {
-      if (pair.$2 != 0 && pair.$1 ~/ pair.$2 < maximum) {
-        maximum = pair.$1 ~/ pair.$2;
-      }
-    }
+    final walletAfter = wallet - price;
+    final maximum = wallet.maximumAffordableQuantity(config.price);
     return Success(
       RedemptionPreview(
         awardId: award.id,
@@ -173,10 +161,7 @@ Result<RedemptionPreview> previewRedemption({
         totalPrice: price,
         timeGrant: config.timeGrant?.times(quantity.value),
         budgetGrant: config.budgetGrant?.times(quantity.value),
-        walletAfter: CurrencyAmounts(
-          coins: wallet.coins - price.coins,
-          gems: wallet.gems - price.gems,
-        ),
+        walletAfter: walletAfter,
         maximumAffordableQuantity: maximum,
       ),
     );

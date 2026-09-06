@@ -1,12 +1,45 @@
+import AVFoundation
 import Flutter
-import UIKit
+import UserNotifications
 import XCTest
+@testable import Runner
 
-class RunnerTests: XCTestCase {
+final class RunnerTests: XCTestCase, AVAudioPlayerDelegate {
+  private var finished: XCTestExpectation?
+  private var completions = 0
 
-  func testExample() {
-    // If you add code to the Runner application, consider adding tests here.
-    // See https://developer.apple.com/documentation/xctest for more information about using XCTest.
+  func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+    XCTAssertTrue(flag)
+    completions += 1
+    finished?.fulfill()
   }
 
+  func testBundledAssetLoadsAndPlaysOnce() throws {
+    let url = try XCTUnwrap(Bundle.main.url(forResource: "completion_chime", withExtension: "wav"))
+    let player = try AVAudioPlayer(contentsOf: url)
+    XCTAssertEqual(player.duration, 1.08, accuracy: 0.001)
+    XCTAssertEqual(player.numberOfChannels, 1)
+    XCTAssertEqual(player.numberOfLoops, 0)
+    player.delegate = self
+    finished = expectation(description: "One native playback completion")
+    finished?.assertForOverFulfill = true
+    XCTAssertTrue(player.prepareToPlay())
+    XCTAssertTrue(player.play())
+    waitForExpectations(timeout: 5)
+    let quiet = expectation(description: "No repeat after another cue duration")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) { quiet.fulfill() }
+    waitForExpectations(timeout: 3)
+    XCTAssertEqual(completions, 1)
+    XCTAssertFalse(player.isPlaying)
+    player.stop()
+  }
+
+  func testNotificationIsImmediateNoncriticalAndUsesCustomSound() throws {
+    let request = try CompletionChime.request(completionId: "synthetic-completion")
+    XCTAssertEqual(request.identifier, "minutrove.completion.synthetic-completion")
+    XCTAssertNil(request.trigger)
+    XCTAssertNotNil(request.content.sound)
+    XCTAssertEqual(request.content.interruptionLevel, .active)
+    XCTAssertEqual(CompletionChime.soundName, "completion_chime.wav")
+  }
 }

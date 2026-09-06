@@ -76,7 +76,10 @@ final class Revision {
   int get hashCode => value.hashCode;
 }
 
-int _parseScaled(String input, int decimals) {
+int _parseScaled(String input, int decimals) =>
+    checkedInteger(_parseScaledBig(input, decimals));
+
+BigInt _parseScaledBig(String input, int decimals) {
   if (!RegExp(r'^\d+(\.\d+)?$').hasMatch(input)) {
     throw const InvalidInput('amount', 'Expected unsigned plain decimal');
   }
@@ -85,12 +88,10 @@ int _parseScaled(String input, int decimals) {
   if (fraction.length > decimals) {
     throw const InvalidInput('amount', 'Too many decimal places');
   }
-  return checkedInteger(
-    BigInt.parse(parts[0]) * BigInt.from(10).pow(decimals) +
-        (fraction.isEmpty
-            ? BigInt.zero
-            : BigInt.parse(fraction.padRight(decimals, '0'))),
-  );
+  return BigInt.parse(parts[0]) * BigInt.from(10).pow(decimals) +
+      (fraction.isEmpty
+          ? BigInt.zero
+          : BigInt.parse(fraction.padRight(decimals, '0')));
 }
 
 String _formatScaled(int value, int decimals) {
@@ -127,6 +128,21 @@ final class MicroAmount {
   int get hashCode => units.hashCode;
 }
 
+/// Editor units; durable durations remain integer milliseconds.
+enum TimeUnit {
+  seconds(1000),
+  minutes(60000),
+  hours(3600000);
+
+  const TimeUnit(this.milliseconds);
+  final int milliseconds;
+}
+
+/// Parse a six-decimal rate and normalize without rounding.
+/// A zero component is valid; QuestConfiguration rejects two zero rates.
+MicroAmount normalizeRatePerHour(String input, {required TimeUnit per}) =>
+    MicroAmount.parse(input).times(3600000 ~/ per.milliseconds);
+
 final class Milliseconds {
   Milliseconds(int value) : value = nonNegative(value, 'milliseconds');
   factory Milliseconds.seconds(int seconds) => Milliseconds(
@@ -134,7 +150,41 @@ final class Milliseconds {
       BigInt.from(nonNegative(seconds, 'seconds')) * BigInt.from(1000),
     ),
   );
+
+  /// Editors may show fractions of minutes/hours, but configuration must
+  /// resolve to positive whole seconds. No fractional second is rounded away.
+  factory Milliseconds.parseConfiguration(
+    String input, {
+    required TimeUnit unit,
+  }) {
+    final scaled = _parseScaledBig(input, 6);
+    final secondsNumerator = scaled * BigInt.from(unit.milliseconds ~/ 1000);
+    final scale = BigInt.from(1000000);
+    if (secondsNumerator == BigInt.zero ||
+        secondsNumerator % scale != BigInt.zero) {
+      throw const InvalidInput('duration', 'Expected positive whole seconds');
+    }
+    return Milliseconds(
+      checkedInteger(secondsNumerator ~/ scale * BigInt.from(1000)),
+    );
+  }
   final int value;
+  Milliseconds operator +(Milliseconds other) => Milliseconds(
+    checkedInteger(BigInt.from(value) + BigInt.from(other.value)),
+  );
+  Milliseconds operator -(Milliseconds other) {
+    if (other.value > value) throw const AllowanceExceeded();
+    return Milliseconds(value - other.value);
+  }
+
+  /// Only active elapsed time is supplied. Overshoot consumes the remainder.
+  ({Milliseconds consumed, Milliseconds remaining}) consume(
+    Milliseconds active,
+  ) {
+    final consumed = active.value < value ? active : this;
+    return (consumed: consumed, remaining: this - consumed);
+  }
+
   Milliseconds times(int quantity) => Milliseconds(
     checkedInteger(
       BigInt.from(value) * BigInt.from(nonNegative(quantity, 'quantity')),
@@ -227,6 +277,22 @@ final class BudgetAmount {
     );
   }
 
+  BudgetAmount operator -(BudgetAmount other) {
+    if (currency != other.currency) {
+      throw const InvalidInput('currency', 'Unlike currencies');
+    }
+    if (other.minorUnits > minorUnits) throw const AllowanceExceeded();
+    return BudgetAmount(currency, minorUnits - other.minorUnits);
+  }
+
+  /// Expenses are positive; subtraction itself also supports zero balances.
+  BudgetAmount spend(BudgetAmount expense) {
+    if (expense.minorUnits == 0) {
+      throw const InvalidInput('expense', 'Must be positive');
+    }
+    return this - expense;
+  }
+
   @override
   String toString() =>
       '${currency.code} ${_formatScaled(minorUnits, currency.minorDigits)}';
@@ -237,8 +303,68 @@ final class CurrencyAmounts {
   final MicroAmount coins;
   final MicroAmount gems;
   bool get isZero => coins.units == 0 && gems.units == 0;
+  CurrencyAmounts operator +(CurrencyAmounts other) =>
+      CurrencyAmounts(coins: coins + other.coins, gems: gems + other.gems);
+  CurrencyAmounts operator -(CurrencyAmounts other) {
+    final coinsShort = coins.units < other.coins.units;
+    final gemsShort = gems.units < other.gems.units;
+    if (coinsShort || gemsShort) {
+      throw InsufficientFunds(coins: coinsShort, gems: gemsShort);
+    }
+    return CurrencyAmounts(coins: coins - other.coins, gems: gems - other.gems);
+  }
+
+  /// Wallet affordability only; callers must also check grant and pooled
+  /// allowance overflow for a requested purchase. Zero-price dimensions do
+  /// not constrain quantity, but a completely free pack is invalid.
+  int maximumAffordableQuantity(CurrencyAmounts price) {
+    if (price.isZero) {
+      throw const InvalidInput('price', 'At least one price must be positive');
+    }
+    var maximum = maxStoredInteger;
+    for (final pair in [(coins, price.coins), (gems, price.gems)]) {
+      if (pair.$2.units != 0) {
+        final affordable = pair.$1.units ~/ pair.$2.units;
+        if (affordable < maximum) maximum = affordable;
+      }
+    }
+    return maximum;
+  }
+
   CurrencyAmounts times(int quantity) =>
       CurrencyAmounts(coins: coins.times(quantity), gems: gems.times(quantity));
+}
+
+/// Keep both results with the same Quest across checkpoints and sessions.
+/// Persist the returned remainders even when neither currency earns a unit.
+typedef CurrencyAccrualRemainders = ({
+  AccrualRemainder coins,
+  AccrualRemainder gems,
+});
+typedef AccruedCurrencies = ({
+  CurrencyAmounts amounts,
+  CurrencyAccrualRemainders remainders,
+});
+
+AccruedCurrencies accrueCurrencies({
+  required CurrencyAmounts ratesPerHour,
+  required Milliseconds active,
+  required CurrencyAccrualRemainders remainders,
+}) {
+  final coins = accrue(
+    perHour: ratesPerHour.coins,
+    active: active,
+    remainder: remainders.coins,
+  );
+  final gems = accrue(
+    perHour: ratesPerHour.gems,
+    active: active,
+    remainder: remainders.gems,
+  );
+  return (
+    amounts: CurrencyAmounts(coins: coins.amount, gems: gems.amount),
+    remainders: (coins: coins.remainder, gems: gems.remainder),
+  );
 }
 
 /// Frozen calendar assignment; the timezone adapter validates IANA membership.

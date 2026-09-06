@@ -110,7 +110,9 @@ development keys mean separate builds are not claimed to be byte-identical.
 runs on pull requests, main, task branches and manual dispatch. Independent jobs
 check source quality, build both Android outputs, build both iOS outputs, and
 run integration tests on iPhone 16 / iOS 18.5 in an isolated standard
-`macos-15-intel` runner (14 GB RAM). All four jobs must pass before a
+`macos-15-intel` runner (14 GB RAM). The existing reproducible audio-source check
+and native Android/iOS one-shot sound tests also remain mandatory in these jobs.
+All four jobs must pass before a
 routine merge; the merged main run must also pass. No job needs signing secrets
 or a paid testing service. Actions use immutable commit pins and checkout does
 not persist repository credentials; the workflow token has only `contents: read`.

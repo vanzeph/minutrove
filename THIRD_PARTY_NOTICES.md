@@ -44,3 +44,28 @@ Flutter's generated license registry. `flutter_test`, `integration_test` (and it
 Flutter driver dependencies), and `flutter_lints` are development dependencies.
 No hosted service, analytics, or public app binary
 is introduced by this UI component package.
+
+## Original completion sound
+
+“Pocket Victory” is original synthesized audio contributed under AGPL-3.0-only,
+not a third-party recording. See [audio provenance](assets/audio/README.md) for
+its authoring method, score, reproducible source, and checksum.
+
+## Native test-only libraries
+
+Android instrumentation uses AndroidX Test Runner 1.6.2 (Apache-2.0,
+https://github.com/android/android-test) and JUnit 4.13.2 (EPL-1.0,
+https://github.com/junit-team/junit4). These are test APK dependencies and are not
+included in the application APK.
+
+## SQLite storage
+
+SQLite storage uses Tekartik's BSD-2-Clause packages: sqflite 2.4.3,
+sqflite_common 2.5.11, and (tests only) sqflite_common_ffi 2.4.2+1.
+Their notices are retained in [SQFLITE_LICENSE](third_party/SQFLITE_LICENSE),
+[SQFLITE_COMMON_LICENSE](third_party/SQFLITE_COMMON_LICENSE), and
+[SQFLITE_COMMON_FFI_LICENSE](third_party/SQFLITE_COMMON_FFI_LICENSE).
+The Android/iOS plugin uses the operating system's SQLite library; SQLite is
+public domain. Transitive Dart packages and platform implementation versions are
+pinned in pubspec.lock; their upstream notices remain in Flutter's generated
+application license registry.

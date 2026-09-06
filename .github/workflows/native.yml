@@ -59,6 +59,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Enable emulator acceleration
+        run: sudo chmod 666 /dev/kvm
+      - name: Verify native Android sound loading and single playback
+        timeout-minutes: 10
+        run: |
+          flutter pub get --enforce-lockfile
+          bash tool/test_android_chime.sh
+
   ios:
     name: iOS simulator app and unsigned device archive
     runs-on: macos-15
@@ -84,6 +92,12 @@ jobs:
           path: build/evidence/ios.json
           if-no-files-found: error
           retention-days: 30
+
+      - name: Verify native iOS sound loading and single playback
+        timeout-minutes: 10
+        run: |
+          flutter build ios --simulator --debug --config-only
+          bash tool/test_ios_chime.sh
 
   integration-ios:
     name: iOS simulator integration
