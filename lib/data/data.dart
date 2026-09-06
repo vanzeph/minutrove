@@ -11,4 +11,5 @@ export 'schema.dart' show SchemaMigration, schemaMigrations;
 export 'session_repository.dart';
 export 'settings_repository.dart';
 export 'sqlite_store.dart';
+export 'stats_repository.dart';
 export 'store_records.dart';
