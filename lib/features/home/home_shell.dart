@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../domain/domain.dart';
 import '../../ui/core/core.dart';
 import '../items/items.dart';
+import 'award_choice.dart';
 import 'home_data.dart';
 
 /// Downstream screens receive stable identities and the same app dependencies.
@@ -185,38 +186,24 @@ class _HomeShellState extends State<HomeShell> {
         :final budgetGrant,
       )) {
         if (timeGrant != null && budgetGrant != null) {
-          final balance = _data!.awards[id]!;
-          final choice = await showTroveDialog<bool>(
+          final choice = await showAwardUseChoice(
             context: context,
-            title: item.name,
-            builder: (dialogContext) => Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(homeItemSummary(item!, balance)),
-                const SizedBox(height: 16),
-                TroveButton(
-                  label: 'Use time',
-                  onPressed: (balance.time?.value ?? 0) > 0
-                      ? () => Navigator.pop(dialogContext, false)
-                      : null,
-                ),
-                const SizedBox(height: 8),
-                TroveButton(
-                  label: 'Record expense',
-                  onPressed: (balance.budget?.minorUnits ?? 0) > 0
-                      ? () => Navigator.pop(dialogContext, true)
-                      : null,
-                ),
-                TroveButton(
-                  label: 'Cancel',
-                  secondary: true,
-                  onPressed: () => Navigator.pop(dialogContext),
-                ),
-              ],
-            ),
+            item: item,
+            updates: widget.watchHome(),
           );
           if (choice == null || !_ready) return;
-          expense = choice;
+          if (choice == AwardUseChoice.configure) {
+            final current = _data!.item(id);
+            if (current != null && mounted) {
+              await showItemEditor(
+                context: context,
+                editing: widget.editing,
+                item: current,
+              );
+            }
+            return;
+          }
+          expense = choice == AwardUseChoice.expense;
         } else {
           expense = budgetGrant != null;
         }
@@ -239,7 +226,7 @@ class _HomeShellState extends State<HomeShell> {
         await _openSession(occupying!.id);
         return;
       }
-      if (occupying != null) {
+      if (occupying != null && !expense) {
         final confirmed = await showTroveDialog<bool>(
           context: context,
           title: 'A session is already active',

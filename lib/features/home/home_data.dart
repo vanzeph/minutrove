@@ -1,4 +1,5 @@
 import '../../data/sqlite_store.dart';
+import '../../data/store_records.dart';
 import '../../domain/domain.dart';
 
 /// One committed read, so moving an item or consuming the last allowance cannot
@@ -43,14 +44,18 @@ class HomeData {
     });
 }
 
-Stream<HomeData> watchSqliteHome(SqliteStore store) => store.watch(
-  (records) async => HomeData(
-    items: await records.items(),
-    groups: await records.groups(),
-    awards: await records.awards(),
-    wallet: await records.wallet(),
-    activeSession: await records.activeSession(),
-  ),
+Stream<HomeData> watchSqliteHome(SqliteStore store) => store.watch(_readHome);
+
+/// Fresh read for validating an expense and its session consent at submission.
+Future<Result<HomeData>> readSqliteHome(SqliteStore store) =>
+    store.read(_readHome);
+
+Future<HomeData> _readHome(StoreReader records) async => HomeData(
+  items: await records.items(),
+  groups: await records.groups(),
+  awards: await records.awards(),
+  wallet: await records.wallet(),
+  activeSession: await records.activeSession(),
 );
 
 String homeDuration(int milliseconds) {

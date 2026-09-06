@@ -272,6 +272,11 @@ Future<void> single(WidgetTester tester, String name) async {
             .any((tile) => tile.name == name && tile.onActivate != null),
     'The launch must finish or show its action dialog.',
   );
+  await waitFor(
+    tester,
+    () => find.byType(LinearProgressIndicator).evaluate().isEmpty,
+    'The action dialog must finish reading its live allowance.',
+  );
 }
 
 void main() {
@@ -659,12 +664,8 @@ void main() {
       await single(tester, 'Getaway');
       await tester.tap(find.text('Record expense'));
       await settle(tester);
-      await tester.tap(find.text('End current session and continue'));
-      await settle(tester);
-      expect(
-        fixture.expenses.single.$3,
-        SessionConflictChoice.endCurrentAndContinue,
-      );
+      expect(find.text('End current session and continue'), findsNothing);
+      expect(fixture.expenses.single.$3, SessionConflictChoice.cancel);
       await tester.runAsync(() async {
         final data = await fixture.read();
         expect(data.activeSession!.status, SessionStatus.running);
