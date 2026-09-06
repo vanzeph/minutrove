@@ -186,6 +186,58 @@ commands do not settle or modify an active session.
 `flutter test test/data/item_repository_test.dart` verifies these commands with
 real SQLite, including persisted duplicate replay and conflicting revisions.
 
+## Session commands
+
+`SqliteSessionRepository(store: store, clock: clock, calendar: calendar)` implements
+the existing `SessionRepository` port. Use the same live store and injected clock
+and calendar as other commands. Starts capture the current immutable item revision,
+reporting zone, Quest countdown or pooled Award time, clock anchors, and stable
+completion identity. A paused session owns the global slot. Repeated starts of the
+same active item return that session, including when paused; a different item
+requires the explicit conflict choice. Replacement validates the new start and
+settles the old session in the same transaction, so a failure preserves both the
+old session and its economics.
+
+Keep an operation ID and its original arguments for retries. A duplicate returns
+its original durable result before checking the current clock or revisions, even
+if that session has since finished. New commands must use the latest expected
+revision. Pause on paused, resume on running, and end/reconcile on terminal sessions
+are harmless no-ops; pause/resume on terminal sessions are typed invalid transitions.
+Use `reconcileSession` for checkpoints and lifecycle callbacks, not a monetary
+write on every UI tick. Reads/watches report committed state; `advanceSession` is
+a pure projection available for countdown presentation.
+
+Settlement writes only newly active milliseconds, frozen day assignments, both
+currency remainders, ledger postings, projections, session progress and notification
+intent in one transaction. Paused time contributes zero. Reaching the duration
+completes even when triggered by pause/end, caps late callbacks, and clears the
+slot. Early end retains exact earnings or unused Award time. Purchases during a
+timed Award do not extend the current run; the extra allowance remains available
+for the next run. Archived purchased Awards can still use their retained time.
+
+`SessionSettlement(calendar).apply` composes the same settlement inside an existing
+`CommandTransaction`, for example before recording an explicitly confirmed expense
+conflict. Supply a freshly read session and the command's single clock reading;
+do not open another transaction or call a repository from its callback. Daily-goal
+bonus policy and native notification/lifecycle adapters are separate integrations.
+The session command persists schedule/cancel intents and preserves an existing
+`completionChimeHandled` flag; an OS adapter owns playback and marking it handled.
+An operation replay is historical evidence and must not independently trigger sound.
+
+Same-boot elapsed time uses monotonic anchors, including across reopen. Across a
+boot change, the pure projection clamps the wall-time estimate to zero/remaining
+duration and exposes `clockDiscontinuity` for lifecycle diagnostics. Interval clock
+endpoints represent the allocated accounting timeline; after a clock edit or reboot
+they are estimates, not additional device-clock samples. The injected calendar
+splits that timeline at actual local midnight. Native clock implementations,
+diagnostic persistence, scheduling and physical-device recovery validation belong
+to the lifecycle integration.
+
+`flutter test test/data/session_repository_test.dart` exercises exact earnings,
+fractional carry, pooled Award consumption, snapshots, conflicts, concurrent
+submissions, durable replay, and every write/COMMIT failure boundary of an atomic
+session replacement. Domain tests cover bounded clock recovery and a 23-hour day.
+
 ## Award pack redemption
 
 `SqliteAwardRedemptionRepository(store: store, clock: clock, calendar: calendar)`
