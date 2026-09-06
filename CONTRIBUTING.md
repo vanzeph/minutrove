@@ -1,8 +1,11 @@
 # Contributing to Minutrove
 
-The project is in product design. There is no application build or test command yet.
+The repository contains the shared Flutter app foundation for iOS and Android.
+Follow the pinned setup and validation commands in [README.md](README.md).
 
-Before starting substantial implementation, discuss the proposed change in an issue so its behavior and scope can be agreed.
+Before starting substantial implementation, agree its behavior and scope through
+the product design process or an issue. Work assigned under an approved design
+can proceed within that boundary.
 
 For pull requests:
 
