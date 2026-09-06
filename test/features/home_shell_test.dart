@@ -175,12 +175,15 @@ class FailFirstStart implements SessionRepository {
     if (operations.length == 1) {
       return const Failure(StorageUnavailable(retryable: true));
     }
-    return delegate.startSession(
+    final result = await delegate.startSession(
       operationId: operationId,
       itemId: itemId,
       expectedItemRevision: expectedItemRevision,
       conflictChoice: conflictChoice,
     );
+    // Exercise a slow response even after SQLite has committed successfully.
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    return result;
   }
 
   @override
@@ -777,6 +780,11 @@ void main() {
     await settle(tester);
     expect(commands.operations, hasLength(2));
     expect(commands.operations.toSet(), hasLength(1));
+    await waitFor(
+      tester,
+      () => fixture.openedSessions.length == 1,
+      'The retried committed start must open exactly one session.',
+    );
     expect(fixture.openedSessions, hasLength(1));
     await tester.pumpWidget(const SizedBox());
     await flush(tester);
