@@ -9,9 +9,13 @@ import 'support.dart' as f;
 
 class TestClock implements Clock {
   DateTime utc = f.now;
+  int monotonic = 0;
   @override
-  ClockReading now() =>
-      ClockReading(utc: utc, bootId: 'test', monotonic: Milliseconds(0));
+  ClockReading now() => ClockReading(
+    utc: utc,
+    bootId: 'test',
+    monotonic: Milliseconds(monotonic),
+  );
 }
 
 class TestCalendar implements ReportingCalendar {
@@ -389,6 +393,7 @@ void main() {
         ),
       );
       clock.utc = f.now.add(const Duration(seconds: 10));
+      clock.monotonic = 10000;
       q = await save(
         edit(
           q,

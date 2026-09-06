@@ -219,7 +219,8 @@ for the next run. Archived purchased Awards can still use their retained time.
 `CommandTransaction`, for example before recording an explicitly confirmed expense
 conflict. Supply a freshly read session and the command's single clock reading;
 do not open another transaction or call a repository from its callback. Daily-goal
-bonus policy and native notification/lifecycle adapters are separate integrations.
+bonuses settle in this same transaction. Native notification/lifecycle adapters
+consume the committed session and notification intent separately.
 The session command persists schedule/cancel intents and preserves an existing
 `completionChimeHandled` flag; an OS adapter owns playback and marking it handled.
 An operation replay is historical evidence and must not independently trigger sound.
@@ -274,6 +275,47 @@ no ID and change neither wallet, allowance nor history.
 stale quotes, concurrent purchases, durable replay, signed-64-bit limits and
 failure at every purchase write and both COMMIT boundaries. All fixtures are
 synthetic. These adapter tests do not claim UI or physical-device coverage.
+
+## Daily goals and calendar attribution
+
+Use `IanaReportingCalendar()` for item, session, settings and economic commands.
+It loads the full offline database in the locked timezone package (2025c rules),
+validates zone membership, and assigns UTC instants to local dates and offsets.
+`nextMidnight` follows actual offset transitions, including 23/25-hour days,
+half-hour daylight saving, missing/repeated midnight and skipped calendar dates.
+It does not use the machine's current zone. Supply the device's IANA identifier
+in `initialSettings` when creating the store; reopening preserves stored settings.
+Later timezone rule updates arrive with a reviewed application dependency update.
+
+`SqliteSettingsRepository` implements `SettingsRepository` over the same command
+queue. A zone edit checks the expected settings revision and IANA membership,
+persists the new revision and original operation result atomically, and affects
+new sessions and operations only. Running and paused sessions keep their zone;
+historical intervals, event dates, offsets and achievements remain unchanged.
+Retries use the original operation ID, zone and expected revision.
+
+Session settlement selects each day's latest effective goal revision, including
+disabling revisions. It sums committed Quest time with the new active intervals
+and inserts at most one achievement per Quest/date together with ordinary
+earnings, bonuses, remainders and session progress. The existing SQL unique key
+is the final duplicate guard, independent of zone or goal revision. A zero bonus
+still records achievement; reaching the target never stops ordinary earnings.
+At an exact midnight threshold, the bonus is attributed to the last active
+millisecond of the completed day so the next date cannot receive its reward.
+
+Item edits inspect uncheckpointed activity using the same monotonic session
+projection as settlement. A wall-clock correction cannot make already active
+time disappear from the effective-date check. Appearance/rate edits retain the
+existing session snapshot; goal revisions can take effect on a later date within
+that session. No schema change or historical reattribution is performed.
+
+`daily_goals_repository_test.dart` exercises the complete SQLite commands through
+cumulative sessions, pauses, midnight, both DST directions, travel, prospective
+zone changes, disabling/re-enabling goals, duplicate callbacks and file reopen.
+Its fault matrix interrupts each two-day settlement write and both sides of
+COMMIT, then verifies a whole-database rollback or original committed replay.
+`reporting_calendar_test.dart` verifies actual IANA transitions. These tests use
+synthetic records and do not assert physical-device lifecycle or UI acceptance.
 
 ## Award consumption
 

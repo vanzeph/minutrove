@@ -28,7 +28,7 @@ final class SqliteItemRepository implements ItemRepository {
     OperationId id,
     OperationKind kind,
     Object Function(StoreTransaction) request,
-    Future<T> Function(StoreTransaction, EventTime) apply,
+    Future<T> Function(StoreTransaction, EventTime, ClockReading) apply,
   ) => store.write((tx) async {
     final fingerprint = jsonEncode([kind.name, request(tx)]);
     // Decode as Object first: reusing an ID from a different command must give
@@ -47,8 +47,9 @@ final class SqliteItemRepository implements ItemRepository {
     if (!calendar.supports(zone)) {
       throw const InvalidInput('reportingZone', 'Unsupported reporting zone');
     }
-    final time = calendar.assign(clock.now().utc, zone);
-    final result = await apply(tx, time);
+    final reading = clock.now();
+    final time = calendar.assign(reading.utc, zone);
+    final result = await apply(tx, time, reading);
     await tx.insertOperation(
       Operation(
         id: id,
@@ -70,7 +71,7 @@ final class SqliteItemRepository implements ItemRepository {
     operationId,
     OperationKind.saveItem,
     (tx) => [tx.codec.toJson(item), expectedRevision?.value],
-    (tx, time) => _save(tx, item, expectedRevision, time),
+    (tx, time, reading) => _save(tx, item, expectedRevision, time, reading),
   );
 
   Future<Item> _save(
@@ -78,6 +79,7 @@ final class SqliteItemRepository implements ItemRepository {
     Item proposed,
     Revision? expected,
     EventTime time,
+    ClockReading reading,
   ) async {
     final previous = await tx.item(proposed.id);
     _checkRevision(previous?.revision, expected);
@@ -113,7 +115,7 @@ final class SqliteItemRepository implements ItemRepository {
             goalKey(oldGoal) != goalKey(newGoal))) {
       final activity =
           await tx.hasActivityOn(saved.id, time.day) ||
-          await _hasUnsettledActivity(tx, saved.id, time);
+          await _hasUnsettledActivity(tx, saved.id, time.day, reading);
       final effective = activity
           ? calendar.assign(calendar.nextMidnight(time), time.zone).day
           : time.day;
@@ -141,7 +143,8 @@ final class SqliteItemRepository implements ItemRepository {
   Future<bool> _hasUnsettledActivity(
     StoreReader tx,
     ItemId id,
-    EventTime time,
+    DayKey day,
+    ClockReading reading,
   ) async {
     final active = await tx.activeSession();
     if (active == null ||
@@ -149,17 +152,14 @@ final class SqliteItemRepository implements ItemRepository {
         active.status != SessionStatus.running) {
       return false;
     }
-    final end = active.deadlineUtc!.isBefore(time.utc)
-        ? active.deadlineUtc!
-        : time.utc;
-    if (!end.isAfter(active.checkpoint.utc)) return false;
-    final first = calendar.assign(active.checkpoint.utc, active.zone).day;
-    final last = calendar
-        .assign(end.subtract(const Duration(milliseconds: 1)), active.zone)
-        .day;
-    int ordinal(DayKey day) => day.year * 10000 + day.month * 100 + day.day;
-    return ordinal(first) <= ordinal(time.day) &&
-        ordinal(last) >= ordinal(time.day);
+    // Use exactly the settlement projection, including monotonic elapsed time
+    // after wall-clock edits and the running session's original reporting zone.
+    return advanceSession(
+      session: active,
+      action: SessionAction.reconcile,
+      now: reading,
+      calendar: calendar,
+    ).addedIntervals.any((interval) => interval.assignment.day == day);
   }
 
   @override
@@ -171,10 +171,16 @@ final class SqliteItemRepository implements ItemRepository {
     operationId,
     OperationKind.archiveItem,
     (_) => [itemId.value, expectedRevision.value],
-    (tx, time) async {
+    (tx, time, reading) async {
       final item = await tx.item(itemId);
       if (item == null) throw const NotFound();
-      return _save(tx, _copy(item, archived: true), expectedRevision, time);
+      return _save(
+        tx,
+        _copy(item, archived: true),
+        expectedRevision,
+        time,
+        reading,
+      );
     },
   );
 
@@ -187,7 +193,7 @@ final class SqliteItemRepository implements ItemRepository {
     operationId,
     OperationKind.saveGroup,
     (tx) => [tx.codec.toJson(group), expectedRevision?.value],
-    (tx, _) async {
+    (tx, _, _) async {
       final previous = await tx.group(group.id);
       _checkRevision(previous?.revision, expectedRevision);
       final saved = Group(
@@ -210,7 +216,7 @@ final class SqliteItemRepository implements ItemRepository {
     operationId,
     OperationKind.removeGroup,
     (_) => [groupId.value, expectedRevision.value],
-    (tx, time) async {
+    (tx, time, _) async {
       final group = await tx.group(groupId);
       _checkRevision(group?.revision, expectedRevision);
       final moved = <Item>[];
