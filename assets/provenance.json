@@ -1,0 +1,524 @@
+[
+  {
+    "path": "assets/icons/briefcase.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-5",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "eb5b9e1f35fb1a7fb34891e3dc351cddc211a6bb7576fdf6cae03a03e355b197"
+  },
+  {
+    "path": "assets/icons/book.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-8",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "90bcd5dc1741118693983634c67261a64d287e08b8c8ab8b56de50422c488d19"
+  },
+  {
+    "path": "assets/icons/gamepad.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-12",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "f844103babf8ec5476f571c5b2a93ba2668b17d2a90409344cc01a50a1843d14"
+  },
+  {
+    "path": "assets/icons/utensils.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-15",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "5261f10d2c28e6b0abb358159315b237a6bd16e95337565350f196d0fe97c8b2"
+  },
+  {
+    "path": "assets/icons/dumbbell.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-18",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "36a6b041db095ddd01308fff7dca5419d3352d7522cec93d549786fa6a630133"
+  },
+  {
+    "path": "assets/icons/walking-person.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-25",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "3605af993f723b2ecf67e6904cacc92e82db9eb912632b85b9fc1ca91579cf64"
+  },
+  {
+    "path": "assets/icons/palm-tree.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-21",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "6eba0ac4378588b7e945f146f6bdc7581b8a0c827176e11bf26a1cfb24f2a8c9"
+  },
+  {
+    "path": "assets/icons/coin.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-59",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "953ab89d6c004cd0807d893c29c2f89f080a3aa180503cce3aa4725adc14fb3b"
+  },
+  {
+    "path": "assets/icons/gem.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-64",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "0a7cd53afe071800b68f7a5984a50c8bf6caa663223b89500b892f124d539731"
+  },
+  {
+    "path": "assets/icons/home.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-31",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "d98f37d1bddba494b30f860a2369ce8801185d1b07e957f64b81825b187ab337"
+  },
+  {
+    "path": "assets/icons/shop.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-34",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "2560e2a478feaab73c163f0e96f99a187fdbd9e6eabbd561f0709a86c3aa4981"
+  },
+  {
+    "path": "assets/icons/stats.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-37",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "abad34c96754e5859877d78e31369750530d70ae80cd38d315bb433d454a2f7a"
+  },
+  {
+    "path": "assets/icons/close.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-54",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "45d70d951ccfb184510b45950b4838bac71df49d4a9f6ef08826dd4136301d39"
+  },
+  {
+    "path": "assets/icons/plus.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-45",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "6168a4ae0908dcf218076a628f458ad6e3cdf7c0337e40c21a244990264d9edd"
+  },
+  {
+    "path": "assets/icons/settings.svg",
+    "source": "https://www.figma.com/design/kWrdRyCdnbV1UTfuJZBs3B?node-id=5-42",
+    "license": "AGPL-3.0-only (original Minutrove design)",
+    "sha256": "bfae671b1951c768b27b7590626220e97a46d44f793cfe0111302b9380fbf682"
+  },
+  {
+    "path": "assets/icons/alarm-clock.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/alarm-clock.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "28b99c01c718b004fbeb35afd06a7deb5d854ae81d4dc31fe043c8074353d45d"
+  },
+  {
+    "path": "assets/icons/apple.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/apple.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "55ae3426d521764c769c295a02a5bf11323068e6abf46c89a4b418b75e7e0f54"
+  },
+  {
+    "path": "assets/icons/backpack.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/backpack.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "239fdca9bfe7d550be2dbbbe40f3c62f748a96235cde509d15dd32596e982f95"
+  },
+  {
+    "path": "assets/icons/bike.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/bike.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "eb129250bb946117fce7ecb22f33f89dcb64c6d69a4b86724f6f75b363c91e76"
+  },
+  {
+    "path": "assets/icons/bird.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/bird.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "6714496bfd202994ef9b345e6ba9e3f3453701ced232fb3fa92c9c016b35d712"
+  },
+  {
+    "path": "assets/icons/brush.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/brush.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "70a2174ebd2601367ba0e8ce6ddb3d6a844d5d17e24235197f04481a1bed27e9"
+  },
+  {
+    "path": "assets/icons/cake.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/cake.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "f1f7b460568599597e00aa2242c3d392b20b3686c14ae97884cb0cb78e385169"
+  },
+  {
+    "path": "assets/icons/camera.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/camera.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "ebbb3178dd80dfd942770a2237fe7bfc3515c55c7daa9d3666933a656d2790e3"
+  },
+  {
+    "path": "assets/icons/car.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/car.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "6d70bc146ca53b9c140a859319df471616c1ee6758bfb31a346d549d1fe92211"
+  },
+  {
+    "path": "assets/icons/cat.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/cat.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "aa8dacc2b7db300a4137da7a7b0e2b4983061d45ef8bfff2c8078796b97e7518"
+  },
+  {
+    "path": "assets/icons/chef-hat.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/chef-hat.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "aaf78c326e3f73b727fc029efcd5fb651b4059540ad81552210dbd3d785b25be"
+  },
+  {
+    "path": "assets/icons/clapperboard.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/clapperboard.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "e4d78946cda7812f13c431c68b6d4d0077a92217c7f468667a203f237e247d7e"
+  },
+  {
+    "path": "assets/icons/coffee.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/coffee.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "970595bdafac0df42c00b847d53fd00c2283ecc3b83881274de2aa7dbce2bbc8"
+  },
+  {
+    "path": "assets/icons/compass.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/compass.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "c5a4d147bf48424f48b514712dd61c1b07cb689612a7baef87c88870092c1659"
+  },
+  {
+    "path": "assets/icons/cooking-pot.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/cooking-pot.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "f44a2639fb86ad9e3b0284a87b6083f6656491fd9e09f6c5e173b81f98b8c090"
+  },
+  {
+    "path": "assets/icons/crown.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/crown.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "544c1b6181749ae4b4c98861a5a6ed1242940239cda97cc13c74e84a03fd68c0"
+  },
+  {
+    "path": "assets/icons/dog.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/dog.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "8817ced475f62c704e0641aaa522d8c587b75b16b3b533997916c91e9e5de06a"
+  },
+  {
+    "path": "assets/icons/drum.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/drum.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "bd334f14dd0489e22ebd3b531605da25b39c54c0e16fb00a8dcaeda2201053e9"
+  },
+  {
+    "path": "assets/icons/earth.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/earth.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "72ca6996d7032013268f46e9bcf360652136eb0f75465e3c98687fef784bbd41"
+  },
+  {
+    "path": "assets/icons/flower.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/flower.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "52d9db5e1448d213e81954d8fbd331ca2bb8849a4be5adf9426e5683e7ee8b85"
+  },
+  {
+    "path": "assets/icons/footprints.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/footprints.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "09ddd9fd4ac7cebfdc91e1096f7b75db019a42fffc493c4adb128a49e1dba04f"
+  },
+  {
+    "path": "assets/icons/gift.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/gift.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "bc0651476bc7fdefa8d033f7b7572f9c8712aaca3b9196488442e6b4e76ed2a4"
+  },
+  {
+    "path": "assets/icons/graduation-cap.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/graduation-cap.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "326b4a1c18429509a697cbc0c49fdfcf9316da34bcf581569c2fc73cc772b86f"
+  },
+  {
+    "path": "assets/icons/guitar.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/guitar.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "ca2026598763ff4c8991912524f8050326e24307ea241ea2a0735af529f7e67f"
+  },
+  {
+    "path": "assets/icons/headphones.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/headphones.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "7719585dafa921805aefc21fc3262bbcc621507610a653b84e1632236650b35a"
+  },
+  {
+    "path": "assets/icons/heart.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/heart.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "70af5f30be9fcb500b852556b38dcdf8c04a4ba81fd262534fb0336bd39b3b52"
+  },
+  {
+    "path": "assets/icons/house.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/house.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "28216c479005731ef5e382e7d8627eda2b129b019eb1f3d9de9f5915576d448e"
+  },
+  {
+    "path": "assets/icons/ice-cream-cone.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/ice-cream-cone.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "22809ab31cd8440f62f54bfc89d5ab32d19ef6d6229649bdaeef326a21c5af7c"
+  },
+  {
+    "path": "assets/icons/key.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/key.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "1f0bdf32374dacfca8cfc7f942c59d27a438e409dccaef11a8ce57de9365ae60"
+  },
+  {
+    "path": "assets/icons/keyboard.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/keyboard.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "f509925ca81964ed06251ad4702e989bb81a566ffc74d15c2226b4f07ded67be"
+  },
+  {
+    "path": "assets/icons/lamp.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/lamp.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "a677c0a6e1c98857e62ed896367918907e1bdda3bd5306d55211d45f6cf1be6b"
+  },
+  {
+    "path": "assets/icons/laptop.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/laptop.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "b8389056d3b7125670b60a4bd03e6d4ecc440e228f4140e7b66c4e97dcb0dc70"
+  },
+  {
+    "path": "assets/icons/leaf.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/leaf.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "ac2b65d8d35b5038c9388cd1f161e74570fce6ef6a4c3d99a6b0c2bd68e0cb28"
+  },
+  {
+    "path": "assets/icons/library.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/library.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "892ba1bd1ee2e5bba320eea1c30c83ed83055ded5a0a0c0e7e4ee5fb06c307a5"
+  },
+  {
+    "path": "assets/icons/lightbulb.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/lightbulb.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "e33bbec15b1e64cca958e086850f951c0dc2201cd5778bb3695fda3cb6ea457d"
+  },
+  {
+    "path": "assets/icons/map.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/map.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "41300a8ef2c2a4cf36ec3f8a730bcb4754543889eb23b98e7435de7a0757752d"
+  },
+  {
+    "path": "assets/icons/medal.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/medal.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "19a93f0d070d0a04283e2bee11799d3fd73de214936224c5d4141ebe3e119756"
+  },
+  {
+    "path": "assets/icons/moon.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/moon.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "205b959e940d5841f0ce1d09c933153da9d9c94130a54d5cc0c68c2af1d403da"
+  },
+  {
+    "path": "assets/icons/mountain.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/mountain.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "fced3dd3ffb1472e62a13d92e72633e9c68a4655da3d8aa801bc65a041fe64be"
+  },
+  {
+    "path": "assets/icons/music.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/music.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "8721b8a3594219c1313c4083049e5a5c049f49c47b1cd93fdb61d52a0803e42b"
+  },
+  {
+    "path": "assets/icons/notebook.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/notebook.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "03c9f3fa8ead15c1f64c7dd4269d4c0376d1e88f7c534acbbb716f2995942821"
+  },
+  {
+    "path": "assets/icons/paintbrush.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/paintbrush.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "b0a958ba9889f89c40df6e1c168b8a7aa20f6309780e795c5bce00a4bc11bff6"
+  },
+  {
+    "path": "assets/icons/palette.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/palette.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "8e7d3fde990cffd10469ba351f27c50202b057a9bb9af5626322e53fd3abc78c"
+  },
+  {
+    "path": "assets/icons/party-popper.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/party-popper.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "b5335d39d785b14bad5fcd3b3ce3c176a131a357825223b4b7e1ed4b478b02be"
+  },
+  {
+    "path": "assets/icons/pencil.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/pencil.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "7e1ca7a6f5c1eb949671df762f2baadd32f5bd841d43153c3a15279af7d78d0c"
+  },
+  {
+    "path": "assets/icons/pizza.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/pizza.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "6ef052b3d1fee883d6c8526545661f6e87b0f3e45db8a4beab92413f2c958c41"
+  },
+  {
+    "path": "assets/icons/plane.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/plane.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "4c775a62a524be78fe20aed8544933d4bd3802c5eca17cd6923509f87671d6d6"
+  },
+  {
+    "path": "assets/icons/puzzle.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/puzzle.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "6d80d0c3b214c96945ed0f1c6ee0e4c4ea3911c6cc91c75751fdba08c31eab02"
+  },
+  {
+    "path": "assets/icons/rocket.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/rocket.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "2b7887d9a5623f2e5e4a5d32716f93829d61b458e03b6eae33a6df648b9eb855"
+  },
+  {
+    "path": "assets/icons/sailboat.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/sailboat.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "5e772794ba3157558622aae62e808bf95a29a5f507e8a625f7df35736cb01f40"
+  },
+  {
+    "path": "assets/icons/scissors.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/scissors.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "4c831fc2c903825f68565c28ffab945c34b2c60b6c564e2ae54250e1099fa550"
+  },
+  {
+    "path": "assets/icons/shopping-bag.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/shopping-bag.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "24a161961b559234b7a31af904dab18b437507336ba2decff3fe6b7772495896"
+  },
+  {
+    "path": "assets/icons/shovel.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/shovel.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "5a2407e1f1610c1fcb5feaaf49bd3869544e452326a79367927568dba655a6e1"
+  },
+  {
+    "path": "assets/icons/shower-head.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/shower-head.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "caae956f3356861b4cb714691e0b14d458240e7f1be5956f49a0b1dba66249d8"
+  },
+  {
+    "path": "assets/icons/snowflake.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/snowflake.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "9b77c3f6fbd49a7669cc530f8e9d6216ff652457c16e27b2c4eb4d81ac7c4bdd"
+  },
+  {
+    "path": "assets/icons/sparkles.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/sparkles.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "f5499f33f09d7158151e9bd2ec0faf79ff8fb57292f84fdd7286d96d0f0424d8"
+  },
+  {
+    "path": "assets/icons/sprout.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/sprout.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "cf4cd97166b3239348dfe2a94dad045bf788883c32292b16fd8c953f619a4f7b"
+  },
+  {
+    "path": "assets/icons/star.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/star.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "c59da86b889569387db28e69ad00a89f96af22863ad9eea9aa12c4876a14338c"
+  },
+  {
+    "path": "assets/icons/sun.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/sun.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "a3955c8b0425fcc5c9ba12d2bdd77fe53b2cd5dd05e7742a56f342e996fb2ef8"
+  },
+  {
+    "path": "assets/icons/tent.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/tent.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "6915cac45dc3f1a4490c089c209078eaa44ccfef7b01023d3fd59ea4213a9d0a"
+  },
+  {
+    "path": "assets/icons/ticket.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/ticket.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "37dfe2d23041dd13224fef9d1cb7db4b4f589b661b850f23f57105e843534a2f"
+  },
+  {
+    "path": "assets/icons/train-front.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/train-front.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "27757ea510a6d1d6258cb838a72a7b239c96f3724923adb5d529a25c3ee8e2eb"
+  },
+  {
+    "path": "assets/icons/tree-pine.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/tree-pine.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "dc753fcbe03ca676163795fa5d62243fe0d66b44b6cab44350ae2eb144c38478"
+  },
+  {
+    "path": "assets/icons/trophy.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/trophy.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "c641553befdb899b2eb01075c0962c73b4b0e0d1835d9d407f5d5d4d70f77d03"
+  },
+  {
+    "path": "assets/icons/umbrella.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/umbrella.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "c1c21ec8b289676b8b984ffa4cd76ef1a011aedb2f2082460656a8fb1d2eb8a9"
+  },
+  {
+    "path": "assets/icons/wallet.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/wallet.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "76c9596f629a2abf9cfabb573452f3113ed7e9502c699aa811e630f156eb7556"
+  },
+  {
+    "path": "assets/icons/watch.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/watch.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "2a5b263eb6a1d45e5f2b99e07a31950fcbf16c6003c9c3f831db9fc4703afc7a"
+  },
+  {
+    "path": "assets/icons/wrench.svg",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/icons/wrench.svg",
+    "license": "ISC; see bundled Lucide license for inherited MIT icons",
+    "sha256": "b5f3bf792743edb9e81b543dd1b13ccc26d3afe1d33500a1cd8dee2e052d6197"
+  },
+  {
+    "path": "assets/fonts/NunitoSans.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/5e35378e6bda803962ee6fd257e444a7d459660d/ofl/nunitosans/NunitoSans%5BYTLC%2Copsz%2Cwdth%2Cwght%5D.ttf",
+    "license": "OFL-1.1",
+    "sha256": "f934d7142fb4784bf828da485b7dcbd90c0c80d514e9d49a5da0ed3a1ae2491d"
+  },
+  {
+    "path": "assets/licenses/NUNITO_SANS_OFL.txt",
+    "source": "https://raw.githubusercontent.com/google/fonts/5e35378e6bda803962ee6fd257e444a7d459660d/ofl/nunitosans/OFL.txt",
+    "license": "OFL-1.1",
+    "sha256": "efbb0c9e864cef973982d9a17567e6be5c3d1759695574586f3f18c7ecca064b"
+  },
+  {
+    "path": "assets/licenses/LUCIDE_LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/lucide-icons/lucide/94e4cb9d9db5907053ebf3636a97c45529cf776b/LICENSE",
+    "license": "ISC / MIT",
+    "sha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+  },
+  {
+    "path": "assets/licenses/MINUTROVE_LICENSE.txt",
+    "source": "LICENSE",
+    "license": "AGPL-3.0-only",
+    "sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0"
+  }
+]
