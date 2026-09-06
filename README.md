@@ -32,7 +32,7 @@ another SDK directory. An existing SDK at that path must match the pin.
 | Android minimum | Android 7.0 / API 24 |
 | Android compile / target | API 36, from the pinned Flutter SDK |
 | Android NDK | 28.2.13676358, from the pinned Flutter SDK |
-| Android build tools | Temurin 17.0.20+101, SDK build tools 36.0.0, Gradle 9.3.1 (SHA-256 verified), AGP 9.1.0, Kotlin plugin 2.4.0 |
+| Android build tools | Temurin 17.0.20.1+1, SDK build tools 36.0.0, Gradle 9.3.1 (SHA-256 verified), AGP 9.1.0, Kotlin plugin 2.4.0 |
 | CI Apple tools | Xcode 16.4 / iOS SDK and simulator runtime 18.5 |
 | iOS minimum | iOS 15.0 |
 
