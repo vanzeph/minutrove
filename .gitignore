@@ -1,0 +1,39 @@
+# Local configuration and private working notes
+.DS_Store
+.local/
+.codex/
+.env
+.env.*
+!.env.example
+
+# Credentials and app signing material
+*.keystore
+*.jks
+*.p12
+*.p8
+*.mobileprovision
+*.pem
+key.properties
+local.properties
+
+# Build output and caches
+build/
+dist/
+coverage/
+*.log
+.gradle/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+DerivedData/
+.swiftpm/
+.build/
+Pods/
+node_modules/
+
+# Editor and operating-system files
+.idea/
+*.iml
+*.xcuserstate
+xcuserdata/
+.vscode/
