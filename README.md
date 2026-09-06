@@ -77,8 +77,10 @@ flutter devices
 bash tool/integration.sh <device-id>
 ```
 
-Every script verifies the Flutter/Dart revision and resolves dependencies with
-`--enforce-lockfile`. `tool/check.sh` formats and analyzes all Dart sources and
+Every script verifies the Flutter/Dart revision and first resolves dependencies
+with `--enforce-lockfile`. Native build/test commands then retain Flutter's normal
+Pub phase so it regenerates plugin registration for debug versus release (the
+`--no-pub` flag would suppress that step). CI rejects any source/lockfile drift. `tool/check.sh` formats and analyzes all Dart sources and
 runs every unit/widget test in `test/`. `tool/integration.sh` runs all tests in
 `integration_test/` on the explicitly selected device; it fails for a missing or
 unavailable device. The initial integration smoke checks native launch and
@@ -86,10 +88,10 @@ navigation. Add consequential native journeys there as features arrive.
 
 | Output | Build command used by script | Signing / purpose |
 | --- | --- | --- |
-| `build/app/outputs/flutter-apk/app-debug.apk` | `flutter build apk --debug --no-pub` | Debug signed; installable development APK |
-| `build/app/outputs/bundle/release/app-release.aab` | `flutter build appbundle --release --no-pub` | Unsigned; cannot be installed directly |
-| `build/ios/iphonesimulator/Runner.app` | `flutter build ios --simulator --debug --no-codesign --no-pub` | No signing identity; Apple Silicon may add an ad-hoc signature |
-| `build/ios/archive/Runner.xcarchive` | `flutter build ipa --release --no-codesign --no-pub` | Unsigned device archive; no IPA export or device install |
+| `build/app/outputs/flutter-apk/app-debug.apk` | `flutter build apk --debug` | Debug signed; installable development APK |
+| `build/app/outputs/bundle/release/app-release.aab` | `flutter build appbundle --release` | Unsigned; cannot be installed directly |
+| `build/ios/iphonesimulator/Runner.app` | `flutter build ios --simulator --debug --no-codesign` | No signing identity; Apple Silicon may add an ad-hoc signature |
+| `build/ios/archive/Runner.xcarchive` | `flutter build ipa --release --no-codesign` | Unsigned device archive; no IPA export or device install |
 
 The scripts reject certificate-signed Apple outputs and record unsigned or
 linker-generated ad-hoc signing accurately. Ad-hoc signatures use no developer

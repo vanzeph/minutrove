@@ -6,15 +6,17 @@ target="${1:?Usage: bash tool/build_native.sh android|ios}"
 case "$target" in android|ios) ;; *) echo "Unknown target: $target" >&2; exit 2 ;; esac
 python3 tool/verify_toolchain.py
 flutter pub get --enforce-lockfile
+# Flutter must regenerate plugin registration for each debug/release mode.
+# --no-pub suppresses that regeneration and can leak dev plugins into release.
 mkdir -p build/evidence
 case "$target" in
   android)
-    flutter build apk --debug --no-pub
-    flutter build appbundle --release --no-pub
+    flutter build apk --debug
+    flutter build appbundle --release
     ;;
   ios)
-    flutter build ios --simulator --debug --no-codesign --no-pub
-    flutter build ipa --release --no-codesign --no-pub
+    flutter build ios --simulator --debug --no-codesign
+    flutter build ipa --release --no-codesign
     ;;
 esac
 python3 tool/build_evidence.py "$target"
