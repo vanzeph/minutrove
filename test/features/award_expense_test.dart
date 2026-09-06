@@ -35,6 +35,7 @@ class ExpenseProxy implements EconomyRepository {
     operations.add(operationId);
     await gate?.future;
     if (staleFirst && operations.length == 1) {
+      await Future<void>.delayed(const Duration(milliseconds: 800));
       return const Failure(StaleRevision());
     }
     final result = await delegate.recordExpense(
@@ -127,7 +128,9 @@ void main() {
   Future<void> press(WidgetTester tester, String text) async {
     await h.waitFor(
       tester,
-      () => find.text(text).evaluate().isNotEmpty,
+      () => tester
+          .widgetList<TroveButton>(find.widgetWithText(TroveButton, text))
+          .any((button) => button.onPressed != null),
       'The expected action must be ready: $text',
     );
     await tester.ensureVisible(find.text(text));
@@ -429,6 +432,11 @@ void main() {
       await launch(tester, home: shell(commands: proxy));
       await amount(tester, '12.50');
       await press(tester, 'Record USD 12.50');
+      await h.waitFor(
+        tester,
+        () => find.textContaining('allowance changed').evaluate().isNotEmpty,
+        'Wait for the delayed stale-revision response before inspecting preserved input.',
+      );
       expect(find.textContaining('allowance changed'), findsOneWidget);
       expect(
         tester
@@ -483,6 +491,11 @@ void main() {
     );
     await amount(tester, '12.50');
     await press(tester, 'Record USD 12.50');
+    await h.waitFor(
+      tester,
+      () => find.textContaining('amount is kept').evaluate().isNotEmpty,
+      'Fresh read failure is visible before checking recovery.',
+    );
     expect(find.textContaining('amount is kept'), findsOneWidget);
     expect(proxy.operations, isEmpty);
     failed = false;
