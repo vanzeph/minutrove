@@ -49,11 +49,13 @@ class CompactSessionBar extends StatelessWidget {
     required this.timeLabel,
     required this.paused,
     required this.onOpen,
+    this.statusLabel,
   });
   final String name;
   final String timeLabel;
   final bool paused;
-  final VoidCallback onOpen;
+  final VoidCallback? onOpen;
+  final String? statusLabel;
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.all(12),
@@ -65,7 +67,9 @@ class CompactSessionBar extends StatelessWidget {
         alignment: WrapAlignment.center,
         children: [
           Text(name),
-          Text('${paused ? 'Paused' : 'Running'} · $timeLabel'),
+          Text(
+            '${statusLabel ?? (paused ? 'Paused' : 'Running')} · $timeLabel',
+          ),
         ],
       ),
     ),
