@@ -108,8 +108,9 @@ development keys mean separate builds are not claimed to be byte-identical.
 
 [Native checks](https://github.com/vanzeph/minutrove/actions/workflows/native.yml)
 runs on pull requests, main, task branches and manual dispatch. Independent jobs
-check source quality, build both Android outputs, and build both iOS outputs plus
-run integration tests on iPhone 16 / iOS 18.5. All three jobs must pass before a
+check source quality, build both Android outputs, build both iOS outputs, and
+run integration tests on iPhone 16 / iOS 18.5 in an isolated standard
+`macos-15-intel` runner (14 GB RAM). All four jobs must pass before a
 routine merge; the merged main run must also pass. No job needs signing secrets
 or a paid testing service. Actions use immutable commit pins and checkout does
 not persist repository credentials; the workflow token has only `contents: read`.
