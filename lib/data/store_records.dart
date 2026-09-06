@@ -305,6 +305,21 @@ class StoreReader {
     );
   }
 
+  /// Only committed Quest activity counts, with its original calendar key.
+  /// Sum in Dart to avoid SQLite's signed integer SUM overflow.
+  Future<BigInt> questActiveOn(ItemId id, DayKey day) async {
+    final rows = await _db.rawQuery(
+      '''SELECT delta FROM ledger_entries
+      WHERE item_id = ? AND assigned_day = ? AND dimension = 'time'
+        AND delta > 0 AND session_id IS NOT NULL''',
+      [id.value, RecordCodec.day(day)],
+    );
+    return rows.fold<BigInt>(
+      BigInt.zero,
+      (total, row) => total + BigInt.from(row['delta'] as int),
+    );
+  }
+
   Future<List<NotificationIntent>> notificationIntents() async =>
       (await _rows('notification_intents', orderBy: 'session_id'))
           .map(

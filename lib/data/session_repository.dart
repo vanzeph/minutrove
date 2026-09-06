@@ -228,8 +228,22 @@ final class SessionSettlement {
     await records.putSession(updated);
     final item = session.itemSnapshot;
     final entries = <LedgerEntry>[];
+    final goals = item.type == ItemType.quest
+        ? await records.goals(item.id)
+        : <DailyGoalRevision>[];
+    final achieved = item.type == ItemType.quest
+        ? (await records.achievements(questId: item.id))
+              .map((a) => a.day)
+              .toSet()
+        : <DayKey>{};
+    final dailyActive = <DayKey, BigInt>{};
     var ordinal = 0;
-    void post(ActiveInterval interval, LedgerDimension dimension, int delta) {
+    void post(
+      ActiveInterval interval,
+      LedgerDimension dimension,
+      int delta, {
+      EventTime? timestamp,
+    }) {
       if (delta == 0) return;
       entries.add(
         LedgerEntry(
@@ -238,7 +252,7 @@ final class SessionSettlement {
           itemId: item.id,
           itemRevision: item.revision,
           sessionId: session.id,
-          timestamp: interval.assignment,
+          timestamp: timestamp ?? interval.assignment,
           dimension: dimension,
           delta: delta,
         ),
@@ -275,6 +289,50 @@ final class SessionSettlement {
             interval,
             VirtualCurrencyDimension(currency),
             earned.amount.units,
+          );
+        }
+        final day = interval.assignment.day;
+        final prior =
+            dailyActive[day] ?? await records.questActiveOn(item.id, day);
+        dailyActive[day] = prior + BigInt.from(interval.active.value);
+        final effective = effectiveDailyGoal(goals, day);
+        final crossing = dailyGoalCrossing(
+          goal: effective?.goal,
+          priorActive: prior,
+          added: interval.active,
+        );
+        if (crossing != null && achieved.add(day)) {
+          var instant = interval.startedAt.utc.add(
+            Duration(milliseconds: crossing),
+          );
+          // Intervals are half-open. A goal met exactly at midnight belongs to
+          // the day whose final active millisecond earned it, not the new day.
+          if (calendar.assign(instant, session.zone).day != day) {
+            instant = instant.subtract(const Duration(milliseconds: 1));
+          }
+          final awardedAt = calendar.assign(instant, session.zone);
+          final bonus = effective!.goal!.bonus;
+          await records.insertAchievement(
+            DailyAchievement(
+              questId: item.id,
+              day: day,
+              goalRevision: effective.revision,
+              operationId: command.operationId,
+              awardedAt: awardedAt,
+              bonus: bonus,
+            ),
+          );
+          post(
+            interval,
+            const VirtualCurrencyDimension(VirtualCurrency.coins),
+            bonus.coins.units,
+            timestamp: awardedAt,
+          );
+          post(
+            interval,
+            const VirtualCurrencyDimension(VirtualCurrency.gems),
+            bonus.gems.units,
+            timestamp: awardedAt,
           );
         }
       }
