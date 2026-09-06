@@ -13,6 +13,7 @@ application license registry. No external fonts, images, recordings, or personal
 data have been added. The generated launcher icons are temporary Flutter assets.
 
 `pubspec.lock` records exact package versions and archive hashes. The runtime
-currently uses only the Flutter SDK and its SDK dependencies; `flutter_test` and
-`flutter_lints` are development dependencies. Preserve upstream package LICENSE
+currently uses only the Flutter SDK and its SDK dependencies; `flutter_test`,
+`integration_test` (and its Flutter driver dependencies), and `flutter_lints` are
+development dependencies. Preserve upstream package LICENSE
 files and Flutter's license registry when adding the product's About screen.
