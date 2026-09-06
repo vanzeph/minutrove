@@ -1,6 +1,7 @@
 /// SQLite persistence infrastructure; product commands compose these transactions.
 library;
 
+export 'award_redemption_repository.dart';
 export 'command_coordinator.dart';
 export 'item_repository.dart';
 export 'record_codec.dart';
