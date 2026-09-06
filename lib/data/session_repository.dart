@@ -38,7 +38,7 @@ final class SqliteSessionRepository implements SessionRepository {
       operationId: operationId,
       request: CommandRequest(kind: kind, arguments: arguments),
       committedAt: (records) async {
-        reading = clock.now();
+        reading = await clock.now();
         final session = sessionId == null
             ? null
             : await records.session(sessionId);

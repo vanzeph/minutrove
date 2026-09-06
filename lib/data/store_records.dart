@@ -4,7 +4,8 @@ import '../domain/domain.dart';
 import 'record_codec.dart';
 
 /// A transaction-scoped view. Do not retain it beyond its callback, nest store
-/// transactions, or await a UI/platform operation while holding a transaction.
+/// transactions, or await user interaction while holding a transaction. A
+/// bounded native clock sample is read by the coordinator before any mutation.
 class StoreReader {
   StoreReader(this._db, this.codec);
   final DatabaseExecutor _db;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'items.dart';
@@ -290,7 +291,10 @@ abstract interface class SettingsRepository {
 }
 
 abstract interface class Clock {
-  ClockReading now();
+  /// Fresh wall/boot/sleep-inclusive monotonic sample. Native adapters may be
+  /// asynchronous; consumers await this inside the serialized command after
+  /// replay lookup. Test clocks may return a synchronous reading.
+  FutureOr<ClockReading> now();
 }
 
 /// Calendar rules live behind a port so domain tests can supply DST boundaries.

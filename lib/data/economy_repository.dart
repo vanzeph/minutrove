@@ -70,7 +70,7 @@ final class SqliteEconomyRepository implements EconomyRepository {
         },
       ),
       committedAt: (records) async {
-        reading = clock.now();
+        reading = await clock.now();
         final zone = (await records.settings()).reportingZone;
         if (!calendar.supports(zone)) {
           throw const InvalidInput(

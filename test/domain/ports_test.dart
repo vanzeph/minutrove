@@ -122,7 +122,7 @@ void main() {
     () async {
       final Clock clock = FakeClock();
       final scheduler = FakeNotifications();
-      final time = clock.now();
+      final time = await clock.now();
       final intent = NotificationIntent(
         sessionId: SessionId(operation.value),
         sessionRevision: Revision(1),

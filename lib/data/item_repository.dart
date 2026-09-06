@@ -47,7 +47,7 @@ final class SqliteItemRepository implements ItemRepository {
     if (!calendar.supports(zone)) {
       throw const InvalidInput('reportingZone', 'Unsupported reporting zone');
     }
-    final reading = clock.now();
+    final reading = await clock.now();
     final time = calendar.assign(reading.utc, zone);
     final result = await apply(tx, time, reading);
     await tx.insertOperation(

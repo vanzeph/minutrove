@@ -31,11 +31,11 @@ final class SqliteSettingsRepository implements SettingsRepository {
         'reportingZone': reportingZone.ianaName,
       },
     ),
-    committedAt: (_) {
+    committedAt: (_) async {
       if (!calendar.supports(reportingZone)) {
         throw const InvalidInput('reportingZone', 'Unsupported IANA zone');
       }
-      return calendar.assign(clock.now().utc, reportingZone);
+      return calendar.assign((await clock.now()).utc, reportingZone);
     },
     action: (command) async {
       final current = await command.records.settings();

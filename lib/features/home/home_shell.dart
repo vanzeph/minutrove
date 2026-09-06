@@ -549,17 +549,54 @@ class CompactSessionSlot extends StatefulWidget {
 }
 
 class _CompactSessionSlotState extends State<CompactSessionSlot> {
-  late final Timer _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-    if (mounted) setState(() {});
-  });
+  late final Timer _ticker;
+  ClockReading? _reading;
+  bool _clockFailed = false;
+  bool _sampling = false;
+  int _generation = 0;
+
   @override
   void initState() {
     super.initState();
-    _ticker;
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _sample());
+    _sample();
+  }
+
+  @override
+  void didUpdateWidget(covariant CompactSessionSlot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(widget.session, oldWidget.session) ||
+        !identical(widget.clock, oldWidget.clock)) {
+      _generation++;
+      _reading = null;
+      _sampling = false;
+      _clockFailed = false;
+      _sample();
+    }
+  }
+
+  Future<void> _sample() async {
+    if (_sampling || widget.session.status != SessionStatus.running) return;
+    _sampling = true;
+    final generation = _generation;
+    try {
+      final reading = await widget.clock.now();
+      if (!mounted || generation != _generation) return;
+      setState(() {
+        _reading = reading;
+        _clockFailed = false;
+      });
+    } catch (_) {
+      if (!mounted || generation != _generation) return;
+      setState(() => _clockFailed = true);
+    } finally {
+      if (generation == _generation) _sampling = false;
+    }
   }
 
   @override
   void dispose() {
+    _generation++;
     _ticker.cancel();
     super.dispose();
   }
@@ -567,7 +604,10 @@ class _CompactSessionSlotState extends State<CompactSessionSlot> {
   @override
   Widget build(BuildContext context) {
     final session = widget.session;
-    final remaining = remainingSessionTime(session, widget.clock.now());
+    final remaining = remainingSessionTime(
+      session,
+      _reading ?? session.checkpoint,
+    );
     final seconds = remaining ~/ 1000 + (remaining % 1000 == 0 ? 0 : 1);
     final countdown =
         '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
@@ -585,7 +625,11 @@ class _CompactSessionSlotState extends State<CompactSessionSlot> {
           width: double.infinity,
           child: CompactSessionBar(
             name: session.itemSnapshot.name,
-            timeLabel: countdown,
+            timeLabel: session.status == SessionStatus.running && _clockFailed
+                ? 'Time unavailable'
+                : session.status == SessionStatus.running && _reading == null
+                ? 'Updating…'
+                : countdown,
             paused: session.status == SessionStatus.paused,
             statusLabel: status,
             onOpen: widget.onOpen,

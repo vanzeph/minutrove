@@ -230,9 +230,11 @@ boot change, the pure projection clamps the wall-time estimate to zero/remaining
 duration and exposes `clockDiscontinuity` for lifecycle diagnostics. Interval clock
 endpoints represent the allocated accounting timeline; after a clock edit or reboot
 they are estimates, not additional device-clock samples. The injected calendar
-splits that timeline at actual local midnight. Native clock implementations,
-diagnostic persistence, scheduling and physical-device recovery validation belong
-to the lifecycle integration.
+splits that timeline at actual local midnight. The native clock and lifecycle
+adapters are documented in [session recovery](../platform/sessions/README.md).
+All clock consumers await `FutureOr<ClockReading>` after operation replay lookup;
+a native sample failure leaves the command transaction unchanged. Notification
+scheduling and physical-device validation remain separate integrations.
 
 `flutter test test/data/session_repository_test.dart` exercises exact earnings,
 fractional carry, pooled Award consumption, snapshots, conflicts, concurrent

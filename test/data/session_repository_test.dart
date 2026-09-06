@@ -131,6 +131,30 @@ void main() {
     await dir.delete(recursive: true);
   });
 
+  test('Award reboot recovery consumes only the original time run and never its budget', () async {
+    final item = await save(f.award());
+    await grant(item, 60000, budget: 1000);
+    final started = await start(item);
+    clock.advance(10000);
+    await reconcile(started.session);
+    await store.close();
+    clock.boot = 'new-boot';
+    clock.monotonic = 100;
+    clock.utc = clock.utc.add(const Duration(days: 30));
+    await open();
+    final recovered = await reconcile(started.session);
+    expect(recovered.session.status, SessionStatus.completed);
+    expect(recovered.session.settled.value, 60000);
+    expect(recovered.economy.awards.single.time!.value, 0);
+    expect(recovered.economy.awards.single.budget!.minorUnits, 1000);
+    expect(recovered.economy.awards.single.isExhausted, isFalse);
+    expect((await reconcile(started.session)).economy.entries, isEmpty);
+    expect(
+      f.success(await store.read((r) => r.projectionMismatches())),
+      isEmpty,
+    );
+  });
+
   test('five active minutes retain exact earnings; paused time and repeated commands add zero', () async {
     final q = await save(configuredQuest());
     final started = await start(q);

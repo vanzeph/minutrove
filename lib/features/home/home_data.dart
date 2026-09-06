@@ -76,11 +76,5 @@ String homeItemSummary(Item item, AwardBalance? award) =>
     };
 
 /// Presentation only; the session/lifecycle adapter performs settlement.
-int remainingSessionTime(Session session, ClockReading now) {
-  final remaining = session.duration.value - session.settled.value;
-  if (session.status != SessionStatus.running) return remaining;
-  final elapsed = now.bootId == session.checkpoint.bootId
-      ? now.monotonic.value - session.checkpoint.monotonic.value
-      : now.utc.difference(session.checkpoint.utc).inMilliseconds;
-  return remaining - elapsed.clamp(0, remaining);
-}
+int remainingSessionTime(Session session, ClockReading now) =>
+    remainingSessionMilliseconds(session, now);
