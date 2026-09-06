@@ -123,6 +123,7 @@ jobs:
           flutter precache --ios
           python3 tool/verify_toolchain.py
           flutter pub get --enforce-lockfile
+          flutter build ios --simulator --debug --no-codesign --target integration_test/app_test.dart
       - name: Run native integration tests on iPhone 16 / iOS 18.5
         timeout-minutes: 15
         run: |
