@@ -41,3 +41,30 @@ sufficient database/backup integrity validation.
 
 Tests include numeric boundaries, split-session precision, history-preserving
 edit rules, immutable snapshots, metric compatibility, and fake adapter consumers.
+
+Economy calculations reuse those durable values:
+
+- `normalizeRatePerHour(text, per: TimeUnit.minutes)` accepts up to six decimal
+  places and checks the normalized result. For example, `2` Coins/minute and
+  `0.04` Gems/minute normalize to `120` and `2.4` per hour.
+- `accrueCurrencies` returns both earned amounts and independent remainders.
+  Supply only newly active milliseconds, then commit both amounts and both
+  Quest/currency remainders together. A paused checkpoint passes zero active
+  time; a session boundary or a new rate must retain the old remainder.
+- `Milliseconds.parseConfiguration` accepts seconds, minutes, or hours only
+  when the exact result is positive whole seconds. Progress and consumption
+  retain millisecond precision. `consume` caps active time at the remaining
+  allowance and returns consumed and remaining values without changing either
+  input.
+- `wallet.maximumAffordableQuantity(price)` works even when no pack is
+  affordable. A zero component does not constrain the quantity; a zero total
+  price is invalid. This is a wallet limit: checked grant multiplication and
+  resulting pooled allowance limits must still pass in the transaction.
+  `previewRedemption` uses the same wallet arithmetic and checks grant totals.
+- `BudgetAmount.spend` requires a positive expense in the exact same currency
+  and precision, rejects overdrafts, and returns the remaining budget.
+  Pinned `CurrencyMetadata` remains an adapter responsibility; these helpers
+  never infer currency precision or convert currencies.
+
+These functions perform no persistence or command deduplication. Adapters still
+validate item/balance revisions and commit the resulting state atomically.
