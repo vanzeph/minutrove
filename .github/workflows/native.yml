@@ -102,12 +102,18 @@ jobs:
           test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = '18.5'
           bash tool/install_flutter.sh "$RUNNER_TEMP/flutter"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Prepare iOS test dependencies before booting the simulator
+        run: |
+          flutter precache --ios
+          python3 tool/verify_toolchain.py
+          flutter pub get --enforce-lockfile
       - name: Run native integration tests on iPhone 16 / iOS 18.5
-        timeout-minutes: 12
+        timeout-minutes: 15
         run: |
           device=$(xcrun simctl create Minutrove-CI com.apple.CoreSimulator.SimDeviceType.iPhone-16 com.apple.CoreSimulator.SimRuntime.iOS-18-5)
           trap 'xcrun simctl shutdown "$device"; xcrun simctl delete "$device"' EXIT
           xcrun simctl boot "$device"
+          open -a Simulator --args -CurrentDeviceUDID "$device"
           xcrun simctl bootstatus "$device" -b
           bash tool/integration.sh "$device"
           echo 'Native integration tests passed on iPhone 16 / iOS 18.5. Physical-device acceptance remains separate.' >> "$GITHUB_STEP_SUMMARY"
