@@ -43,7 +43,8 @@ jobs:
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
-          java-version: '17.0.20.1+1'
+          # Adoptium's SemVer selector for JDK 17.0.20.1+1.
+          java-version: '17.0.20+101'
       - name: Verify Java runtime
         run: java -XshowSettings:properties -version 2>&1 | grep -E '^ *java.runtime.version = 17\.0\.20\.1\+1$'
       - name: Install pinned Flutter and Android components
