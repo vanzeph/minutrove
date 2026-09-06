@@ -2,8 +2,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:minutrove/main.dart' as app;
 
-void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+Future<void> main() async {
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  if (const bool.fromEnvironment('MINUTROVE_NATIVE_XCTEST')) {
+    // XCTest enables platform semantics after the app launches. Wait before
+    // testWidgets records its handle baseline, so that platform-owned handle
+    // is not mistaken for a handle leaked by the app during the test.
+    await Future<void>(() async {
+      while (!binding.platformDispatcher.semanticsEnabled) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    }).timeout(const Duration(seconds: 30));
+  }
 
   testWidgets('native launch and navigation smoke', (tester) async {
     app.main();

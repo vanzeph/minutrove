@@ -4,7 +4,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 python3 tool/verify_toolchain.py
 flutter pub get --enforce-lockfile
-flutter build ios --simulator --debug --config-only --target integration_test/app_test.dart
+flutter build ios --simulator --debug --config-only --target integration_test/app_test.dart \
+  --dart-define=MINUTROVE_NATIVE_XCTEST=true
 output="$PWD/build/ios-integration"
 xcodebuild build-for-testing -project ios/Runner.xcodeproj -scheme Runner \
   -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
