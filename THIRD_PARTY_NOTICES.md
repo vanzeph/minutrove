@@ -73,3 +73,13 @@ application license registry.
 Command request fingerprints use the Dart project's crypto 3.0.7 (BSD-3-Clause),
 promoted from the existing locked transitive dependency. Its license is retained
 in [CRYPTO_LICENSE](third_party/CRYPTO_LICENSE) and Flutter's license registry.
+
+## Offline calendar rules
+
+Reporting calendars use the Dart project's [timezone 0.11.1](https://pub.dev/packages/timezone/versions/0.11.1)
+(BSD-2-Clause), pinned with its archive hash in pubspec.lock. The full bundled
+IANA database is version 2025c, as identified in the package's generated
+`data/latest_all.dart` header. It includes historical transitions and aliases;
+there is no runtime timezone download. IANA timezone data is public domain.
+The package notice is retained in [TIMEZONE_LICENSE](third_party/TIMEZONE_LICENSE)
+and Flutter's generated application license registry.
