@@ -40,8 +40,9 @@ entries when connecting the product's About screen.
 `pubspec.lock` records exact package versions and archive hashes. SVG rendering
 uses Flutter's `flutter_svg` 2.3.0 (MIT), including its locked transitive vector
 rendering/parser dependencies. Their package LICENSE files are included by
-Flutter's generated license registry. `flutter_test` and `flutter_lints` are
-development dependencies. No hosted service, analytics, or public app binary
+Flutter's generated license registry. `flutter_test`, `integration_test` (and its
+Flutter driver dependencies), and `flutter_lints` are development dependencies.
+No hosted service, analytics, or public app binary
 is introduced by this UI component package.
 
 ## Original completion sound

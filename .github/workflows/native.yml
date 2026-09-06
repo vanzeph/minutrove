@@ -18,8 +18,22 @@ env:
   FLUTTER_SUPPRESS_ANALYTICS: true
 
 jobs:
+  checks:
+    name: Format, analyze, unit and widget tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install pinned Flutter
+        run: |
+          bash tool/install_flutter.sh "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - run: bash tool/check.sh
+
   android:
-    name: Analyze, test, Android
+    name: Android development APK and unsigned AAB
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -29,60 +43,85 @@ jobs:
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
-          java-version: '17'
-      - name: Install pinned Flutter
+          # Adoptium's SemVer selector for JDK 17.0.20.1+1.
+          java-version: '17.0.20+101'
+      - name: Verify Java runtime
+        run: java -XshowSettings:properties -version 2>&1 | grep -E '^ *java.runtime.version = 17\.0\.20\.1\+1$'
+      - name: Install pinned Flutter and Android components
         run: |
           bash tool/install_flutter.sh "$RUNNER_TEMP/flutter"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
-      - name: Verify toolchain and resolve locked dependencies
-        run: |
-          python3 tool/verify_toolchain.py
-          flutter pub get --enforce-lockfile
-          flutter doctor -v
-          java -version
-      - name: Format, analyze, and test
-        run: |
-          python3 tool/generate_chime.py --check
-          dart format --output=none --set-exit-if-changed lib test
-          flutter analyze --fatal-infos
-          flutter test --reporter expanded
-      - name: Build Android development APK
-        run: |
-          flutter build apk --debug --no-pub
-          sha256sum build/app/outputs/flutter-apk/app-debug.apk
-          echo "Development APK is debug signed; source: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
+      - name: Build and verify Android outputs
+        run: bash tool/build_native.sh android
+      - name: Retain metadata only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-build-evidence-${{ github.sha }}
+          path: build/evidence/android.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Enable emulator acceleration
         run: sudo chmod 666 /dev/kvm
       - name: Verify native Android sound loading and single playback
         timeout-minutes: 10
-        run: bash tool/test_android_chime.sh
+        run: |
+          flutter pub get --enforce-lockfile
+          bash tool/test_android_chime.sh
 
   ios:
-    name: iOS simulator
+    name: iOS simulator app and unsigned device archive
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - name: Install pinned Flutter
+      - name: Verify Xcode and install pinned Flutter
         run: |
+          test "$(xcodebuild -version | head -1)" = 'Xcode 16.4'
+          test "$(xcrun --sdk iphoneos --show-sdk-version)" = '18.5'
           bash tool/install_flutter.sh "$RUNNER_TEMP/flutter"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
-      - name: Verify toolchain and resolve locked dependencies
-        run: |
-          python3 tool/verify_toolchain.py
-          flutter pub get --enforce-lockfile
-          flutter doctor -v
-          xcodebuild -version
-          sw_vers
-      - name: Build unsigned iOS simulator app
-        run: |
-          flutter build ios --simulator --debug --no-codesign --no-pub
-          test -d build/ios/iphonesimulator/Runner.app
-          shasum -a 256 build/ios/iphonesimulator/Runner.app/Runner
-          echo "Unsigned simulator app built from $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - name: Build and verify unsigned iOS outputs
+        run: bash tool/build_native.sh ios
+      - name: Retain metadata only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ios-build-evidence-${{ github.sha }}
+          path: build/evidence/ios.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Verify native iOS sound loading and single playback
         timeout-minutes: 10
-        run: bash tool/test_ios_chime.sh
+        run: |
+          flutter build ios --simulator --debug --config-only
+          bash tool/test_ios_chime.sh
+
+  integration-ios:
+    name: iOS simulator integration
+    # XCTest drives the Dart suite without a Flutter CLI debug-service connection.
+    runs-on: macos-15
+    timeout-minutes: 25
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Verify Xcode and install pinned Flutter
+        run: |
+          test "$(xcodebuild -version | head -1)" = 'Xcode 16.4'
+          test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = '18.5'
+          bash tool/install_flutter.sh "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Run native integration tests through XCTest
+        timeout-minutes: 20
+        run: |
+          flutter precache --ios
+          bash tool/integration_ios.sh
+          echo 'Dart integration tests passed through XCTest on iPhone 16 / iOS 18.5. Physical-device acceptance remains separate.' >> "$GITHUB_STEP_SUMMARY"

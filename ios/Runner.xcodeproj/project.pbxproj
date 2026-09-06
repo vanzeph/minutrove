@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C02000000000000000000001 /* IntegrationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = C02000000000000000000002 /* IntegrationTests.m */; };
         C01000000000000000000001 /* CompletionChime.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01000000000000000000002; };
         C01000000000000000000003 /* completion_chime.wav in Resources */ = {isa = PBXBuildFile; fileRef = C01000000000000000000004; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
@@ -44,6 +45,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C02000000000000000000002 /* IntegrationTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = IntegrationTests.m; sourceTree = "<group>"; };
         C01000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionChime.swift; sourceTree = "<group>"; };
         C01000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = completion_chime.wav; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
@@ -81,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
+				C02000000000000000000002 /* IntegrationTests.m */,
 			);
 			path = RunnerTests;
 			sourceTree = "<group>";
@@ -281,6 +284,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */,
+				C02000000000000000000001 /* IntegrationTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
