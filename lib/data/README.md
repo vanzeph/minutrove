@@ -71,6 +71,20 @@ SQLite transaction; reopen the same file before retrying the operation ID.
 also runs it at commit/open, so profile it with realistic histories before tuning
 checkpoint frequency or replacing it with an incremental verification strategy.
 
+Add contiguous `SchemaMigration` entries; never edit shipped versions or install
+a destructive downgrade callback. All pending migration steps, schema-version
+updates and validation execute in one transaction. The SQLite rollback journal
+preserves the original database on SQL, integrity or disk failures. No live-file
+rename, deletion or replacement occurs. Older nonempty files without a recognized
+version and newer schemas are rejected. Keep the database and its journal together
+for recovery after a process or device interruption.
+
+The frozen `test/data/fixtures/v1.sql` contains only synthetic records and must
+remain unchanged when later migrations are added. Tests independently open that
+fixture, upgrade it, inject failing upgrade steps and real `SQLITE_FULL`, and
+reopen the original data. Portable backup validation and atomic file replacement
+belong to the backup adapter, not this migration API.
+
 ## Atomic command coordinator
 
 Construct `CommandCoordinator(store)` over the same live store used by all
@@ -134,20 +148,40 @@ remainders, achievement, wallet/allowance postings and notification intent, plus
 both sides of COMMIT. It compares the entire recovered database with the original
 or fully committed records and then verifies an identical, exactly-once retry.
 
-Add contiguous `SchemaMigration` entries; never edit shipped versions or install
-a destructive downgrade callback. All pending migration steps, schema-version
-updates and validation execute in one transaction. The SQLite rollback journal
-preserves the original database on SQL, integrity or disk failures. No live-file
-rename, deletion or replacement occurs. Older nonempty files without a recognized
-version and newer schemas are rejected. Keep the database and its journal together
-for recovery after a process or device interruption.
-
-The frozen `test/data/fixtures/v1.sql` contains only synthetic records and must
-remain unchanged when later migrations are added. Tests independently open that
-fixture, upgrade it, inject failing upgrade steps and real `SQLITE_FULL`, and
-reopen the original data. Portable backup validation and atomic file replacement
-belong to the backup adapter, not this migration API.
-
 Run `flutter test test/data --reporter expanded`. CI additionally runs all domain
 and widget tests, analysis, and Android/iOS builds. FFI tests exercise native
 SQLite on the host; they do not claim physical-device lifecycle coverage.
+
+## Item and group lifecycle
+
+`SqliteItemRepository(store: store, clock: clock, calendar: calendar)` implements
+`ItemRepository` over this transaction boundary. Inject the production clock and
+reporting calendar used by the other commands. Create with null expected revision;
+edit with the last committed revision. The adapter assigns revisions, verifies
+current group membership and history, and records the original result with a
+canonical JSON request fingerprint. Retry the exact request and operation ID after
+an uncertain response; a different request using that ID returns `InvalidInput`.
+
+Use `saveItem` for name, independent icon/color, future configuration, movement,
+order, and unarchive (`archived: false`). `archiveItem` refuses an item occupying
+the active slot, including pause. Neither operation mutates sessions, ledger,
+wallet, accrual remainders or pooled Award allowances. Watches include archived
+items so callers can render archived settings and retained Trove balances; apply
+Home/Shop filtering in the feature layer.
+
+Use `saveGroup` to create, rename and reorder groups. `removeGroup` increments
+member item revisions and moves all current members, including archived ones, to
+null/Ungrouped in one transaction. It retains item order and immutable historical
+snapshots. A stale item editor cannot restore deleted membership. Equal order
+values use the existing stable UUID tie-breaker.
+
+Goal changes append effective dated goal revisions, including disabling a goal.
+Changes before today's activity apply today; recorded activity (even with no whole
+currency earned), achievements and uncheckpointed running activity defer them to
+the next reporting-calendar midnight. Appearance-only edits append no goal
+revision. Consumers select the latest effective day and revision for settlement;
+`StoreReader.goals` exposes the effective date for configuration feedback. These
+commands do not settle or modify an active session.
+
+`flutter test test/data/item_repository_test.dart` verifies these commands with
+real SQLite, including persisted duplicate replay and conflicting revisions.
