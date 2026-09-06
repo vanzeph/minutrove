@@ -43,3 +43,16 @@ rendering/parser dependencies. Their package LICENSE files are included by
 Flutter's generated license registry. `flutter_test` and `flutter_lints` are
 development dependencies. No hosted service, analytics, or public app binary
 is introduced by this UI component package.
+
+## Original completion sound
+
+“Pocket Victory” is original synthesized audio contributed under AGPL-3.0-only,
+not a third-party recording. See [audio provenance](assets/audio/README.md) for
+its authoring method, score, reproducible source, and checksum.
+
+## Native test-only libraries
+
+Android instrumentation uses AndroidX Test Runner 1.6.2 (Apache-2.0,
+https://github.com/android/android-test) and JUnit 4.13.2 (EPL-1.0,
+https://github.com/junit-team/junit4). These are test APK dependencies and are not
+included in the application APK.
