@@ -55,6 +55,7 @@ jobs:
       - name: Enable emulator acceleration
         run: sudo chmod 666 /dev/kvm
       - name: Verify native Android sound loading and single playback
+        timeout-minutes: 10
         run: bash tool/test_android_chime.sh
 
   ios:
@@ -83,4 +84,5 @@ jobs:
           shasum -a 256 build/ios/iphonesimulator/Runner.app/Runner
           echo "Unsigned simulator app built from $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
       - name: Verify native iOS sound loading and single playback
+        timeout-minutes: 10
         run: bash tool/test_ios_chime.sh
