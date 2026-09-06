@@ -86,6 +86,8 @@ class _RedemptionDialogState extends State<RedemptionDialog> {
     final p = _purchase;
     final summary = p.summary;
     final config = p.item?.configuration;
+    final displayedRevision = p.item?.revision;
+    final displayedQuantity = p.quantity;
     final editable = !p.locked && p.available;
     return PopScope(
       canPop: !p.busy,
@@ -272,7 +274,12 @@ class _RedemptionDialogState extends State<RedemptionDialog> {
                     : p.changed
                     ? 'Confirm updated purchase'
                     : 'Redeem ${p.quantity} ${p.quantity == 1 ? 'pack' : 'packs'}',
-                onPressed: p.canSubmit ? p.submit : null,
+                onPressed: p.canSubmit
+                    ? () => p.submit(
+                        displayedRevision: displayedRevision,
+                        displayedQuantity: displayedQuantity,
+                      )
+                    : null,
               ),
               const SizedBox(height: 8),
               TroveButton(

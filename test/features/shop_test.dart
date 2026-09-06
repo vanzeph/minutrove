@@ -512,6 +512,35 @@ void main() {
     },
   );
 
+  test('a callback from an older painted quote cannot confirm a newly delivered revision', () async {
+    await seed();
+    final stream = StreamController<HomeData>.broadcast(sync: true);
+    final controller = PurchaseController(
+      awardId: gaming.id,
+      watchShop: () => stream.stream,
+      economy: economy,
+      newOperationId: fixture.op,
+    );
+    stream.add(await fixture.read());
+    final displayedRevision = controller.item!.revision;
+    await fixture.save(offer(coins: 12000000), create: false);
+    stream.add(await fixture.read());
+    await controller.submit(
+      displayedRevision: displayedRevision,
+      displayedQuantity: 1,
+    );
+    expect(economy.operations, isEmpty);
+    expect(controller.changed, isTrue);
+    await controller.submit(
+      displayedRevision: controller.item!.revision,
+      displayedQuantity: 1,
+    );
+    expect(economy.operations, hasLength(1));
+    expect(controller.completed!.wallet.balances.coins.units, 408000000);
+    controller.dispose();
+    await stream.close();
+  });
+
   shopTest(
     'wallet changes after preview cannot overdraw, and quantity is retained',
     (tester) async {

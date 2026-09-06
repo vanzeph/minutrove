@@ -174,8 +174,19 @@ class PurchaseController extends ChangeNotifier {
 
   void selectQuantity(int value) => setInput('${math.max(1, value)}');
 
-  Future<void> submit() async {
+  Future<void> submit({
+    required Revision? displayedRevision,
+    required int displayedQuantity,
+  }) async {
     if (!canSubmit) return;
+    // A stream can advance between a painted button and its callback. Never
+    // treat a tap on that older preview as consent to the newly arrived offer.
+    if (_request == null &&
+        (item?.revision != displayedRevision ||
+            quantity != displayedQuantity)) {
+      notifyListeners();
+      return;
+    }
     final request = _request ??= _PurchaseRequest(
       _newOperationId(),
       item!.revision,
