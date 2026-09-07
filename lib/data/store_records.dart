@@ -154,6 +154,7 @@ class StoreReader {
   Future<List<LedgerEntry>> ledger({
     OperationId? operationId,
     ItemId? itemId,
+    SessionId? sessionId,
     DayKey? from,
     DayKey? through,
   }) async {
@@ -166,6 +167,7 @@ class StoreReader {
 
     if (operationId != null) filter('operation_id = ?', operationId.value);
     if (itemId != null) filter('item_id = ?', itemId.value);
+    if (sessionId != null) filter('session_id = ?', sessionId.value);
     if (from != null) filter('assigned_day >= ?', RecordCodec.day(from));
     if (through != null) filter('assigned_day <= ?', RecordCodec.day(through));
     return (await _rows(

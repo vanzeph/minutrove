@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../domain/domain.dart';
 import '../../ui/core/core.dart';
 import 'home_data.dart';
+import '../sessions/session_conflict.dart';
 
 /// Inject into HomeRoutes.openExpense using the app's shared repositories.
 /// Consent is collected at submission, after validating the actual expense.
@@ -143,27 +144,10 @@ class _AwardExpenseDialogState extends State<AwardExpenseDialog> {
         var conflict = SessionConflictChoice.cancel;
         final active = data.activeSession;
         if (active != null) {
-          final accepted = await showTroveDialog<bool>(
+          final accepted = await showSessionConflict(
             context: context,
-            title: 'A session is already active',
-            builder: (context) => Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  '${active.itemSnapshot.name} is ${active.status.name}. End it and record $expense?',
-                ),
-                const SizedBox(height: 16),
-                TroveButton(
-                  label: 'End current session and continue',
-                  onPressed: () => Navigator.pop(context, true),
-                ),
-                TroveButton(
-                  label: 'Cancel',
-                  secondary: true,
-                  onPressed: () => Navigator.pop(context, false),
-                ),
-              ],
-            ),
+            session: active,
+            nextAction: 'record $expense',
           );
           if (accepted != true || !mounted) return;
           final refreshed = await _read();

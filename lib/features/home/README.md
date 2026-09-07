@@ -108,3 +108,8 @@ replaced session/revision or a disposed widget. An unavailable sample shows
 progress. It never posts ledger changes. Native startup/resume integration uses
 [SessionLifecycle](../../platform/sessions/README.md) before commands rely on the
 current session revision.
+
+Use the delivered [SessionRoute](../sessions/README.md) for `openSession`. Both
+session displays now share the asynchronous clock projection. The Home shell
+verifies a terminal session when the global slot is released and returns Home
+once with a dismissible saved-progress message; it retains unrelated modal drafts.

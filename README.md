@@ -149,3 +149,7 @@ Original repository content is licensed under **GNU Affero General Public
 License, version 3 only** (`AGPL-3.0-only`), unless an individual file explicitly
 states otherwise. See [LICENSE](LICENSE) and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+The [session experience](lib/features/sessions/README.md) provides the dedicated
+running/paused timer, exact session earnings, shared conflict prompt, retryable
+commands and committed completion transitions for the native composition root.

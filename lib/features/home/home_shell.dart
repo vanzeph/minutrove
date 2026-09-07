@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../domain/domain.dart';
 import '../../ui/core/core.dart';
 import '../items/items.dart';
+import '../sessions/session_conflict.dart';
+import '../sessions/session_clock_view.dart';
 import 'award_choice.dart';
 import 'home_data.dart';
 
@@ -54,7 +56,7 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   StreamSubscription<HomeData>? _subscription;
   HomeData? _data;
   bool _loadFailed = false;
@@ -64,10 +66,14 @@ class _HomeShellState extends State<HomeShell> {
   int _streamEpoch = 0;
   String? _actionError;
   _StartRequest? _retry;
+  Session? _finished;
+  SessionId? _lastFinished;
+  bool _returnPending = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _listen();
   }
 
@@ -92,10 +98,14 @@ class _HomeShellState extends State<HomeShell> {
       _subscription = widget.watchHome().listen(
         (data) {
           if (!mounted || epoch != _streamEpoch) return;
+          final previous = _data?.activeSession;
           setState(() {
             _data = data;
             _loadFailed = false;
           });
+          if (previous != null && data.activeSession == null) {
+            unawaited(_sessionReleased(previous.id, epoch));
+          }
         },
         onError: (Object error, StackTrace stack) {
           if (!mounted || epoch != _streamEpoch) return;
@@ -119,9 +129,46 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _streamEpoch++;
     _subscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> _sessionReleased(SessionId id, int epoch) async {
+    // Slot disappearance alone could be a replacement. Read the terminal row.
+    try {
+      final result = await widget.sessions.getSession(id);
+      if (!mounted || epoch != _streamEpoch || _data?.activeSession != null) {
+        return;
+      }
+      if (result case Success<Session?>(value: final session?)) {
+        if (!session.occupiesSlot && _lastFinished != id) {
+          _lastFinished = id;
+          _returnPending = true;
+          setState(() => _finished = session);
+          _returnAfterCompletion();
+        }
+      }
+    } catch (_) {
+      // The committed Home wallet/slot is still usable. Never fabricate a receipt.
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _returnAfterCompletion();
+  }
+
+  void _returnAfterCompletion() {
+    if (!_returnPending || _finished == null || _data?.activeSession != null) {
+      return;
+    }
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (state == null || state == AppLifecycleState.resumed) {
+      _returnPending = false;
+      _select(0);
+    }
   }
 
   void _select(int index) => setState(() {
@@ -227,27 +274,10 @@ class _HomeShellState extends State<HomeShell> {
         return;
       }
       if (occupying != null && !expense) {
-        final confirmed = await showTroveDialog<bool>(
+        final confirmed = await showSessionConflict(
           context: context,
-          title: 'A session is already active',
-          builder: (dialogContext) => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '${occupying.itemSnapshot.name} is ${occupying.status.name}. End it and continue with ${item!.name}?',
-              ),
-              const SizedBox(height: 16),
-              TroveButton(
-                label: 'End current session and continue',
-                onPressed: () => Navigator.pop(dialogContext, true),
-              ),
-              TroveButton(
-                label: 'Cancel',
-                secondary: true,
-                onPressed: () => Navigator.pop(dialogContext, false),
-              ),
-            ],
-          ),
+          session: occupying,
+          nextAction: 'continue with ${item.name}',
         );
         if (confirmed != true || !_ready) return;
         if (_data!.activeSession?.id != occupying.id) {
@@ -431,6 +461,21 @@ class _HomeShellState extends State<HomeShell> {
       key: const PageStorageKey('home-scroll'),
       padding: const EdgeInsets.all(24),
       children: [
+        if (_finished case final finished?) ...[
+          Semantics(
+            liveRegion: true,
+            child: Text('Time well spent', style: TroveTokens.heading),
+          ),
+          Text(
+            '${finished.itemSnapshot.name} ${finished.status.name} after ${homeDuration(finished.settled.value)} of active time. Your progress is saved. Rest as long as you like.',
+          ),
+          TroveButton(
+            label: 'Dismiss session result',
+            secondary: true,
+            onPressed: () => setState(() => _finished = null),
+          ),
+          const SizedBox(height: 24),
+        ],
         if (launchers.isEmpty) ...[
           Text('Make time for what matters.', style: TroveTokens.heading),
           const SizedBox(height: 12),
@@ -521,7 +566,7 @@ class _StartRequest {
   final SessionId? occupying;
 }
 
-class CompactSessionSlot extends StatefulWidget {
+class CompactSessionSlot extends StatelessWidget {
   const CompactSessionSlot({
     super.key,
     required this.session,
@@ -531,79 +576,12 @@ class CompactSessionSlot extends StatefulWidget {
   final Session session;
   final Clock clock;
   final VoidCallback? onOpen;
-  @override
-  State<CompactSessionSlot> createState() => _CompactSessionSlotState();
-}
-
-class _CompactSessionSlotState extends State<CompactSessionSlot> {
-  late final Timer _ticker;
-  ClockReading? _reading;
-  bool _clockFailed = false;
-  bool _sampling = false;
-  int _generation = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _sample());
-    _sample();
-  }
-
-  @override
-  void didUpdateWidget(covariant CompactSessionSlot oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(widget.session, oldWidget.session) ||
-        !identical(widget.clock, oldWidget.clock)) {
-      _generation++;
-      _reading = null;
-      _sampling = false;
-      _clockFailed = false;
-      _sample();
-    }
-  }
-
-  Future<void> _sample() async {
-    if (_sampling || widget.session.status != SessionStatus.running) return;
-    _sampling = true;
-    final generation = _generation;
-    try {
-      final reading = await widget.clock.now();
-      if (!mounted || generation != _generation) return;
-      setState(() {
-        _reading = reading;
-        _clockFailed = false;
-      });
-    } catch (_) {
-      if (!mounted || generation != _generation) return;
-      setState(() => _clockFailed = true);
-    } finally {
-      if (generation == _generation) _sampling = false;
-    }
-  }
-
-  @override
-  void dispose() {
-    _generation++;
-    _ticker.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final session = widget.session;
-    final remaining = remainingSessionTime(
-      session,
-      _reading ?? session.checkpoint,
-    );
-    final seconds = remaining ~/ 1000 + (remaining % 1000 == 0 ? 0 : 1);
-    final countdown =
-        '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
-    final status = session.status == SessionStatus.paused
-        ? 'Paused'
-        : remaining == 0
-        ? 'Finishing'
-        : 'Running';
-    return ConstrainedBox(
+  Widget build(BuildContext context) => SessionClockView(
+    session: session,
+    clock: clock,
+    builder: (context, remaining, label) => ConstrainedBox(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * .24,
       ),
@@ -612,17 +590,17 @@ class _CompactSessionSlotState extends State<CompactSessionSlot> {
           width: double.infinity,
           child: CompactSessionBar(
             name: session.itemSnapshot.name,
-            timeLabel: session.status == SessionStatus.running && _clockFailed
-                ? 'Time unavailable'
-                : session.status == SessionStatus.running && _reading == null
-                ? 'Updating…'
-                : countdown,
+            timeLabel: label,
             paused: session.status == SessionStatus.paused,
-            statusLabel: status,
-            onOpen: widget.onOpen,
+            statusLabel: session.status == SessionStatus.paused
+                ? 'Paused'
+                : remaining == 0
+                ? 'Finishing'
+                : 'Running',
+            onOpen: onOpen,
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
