@@ -1,6 +1,8 @@
 import 'package:sqflite_common/sqlite_api.dart';
 
 import '../domain/domain.dart';
+import 'backup_codec.dart';
+import 'backup_record_codec.dart';
 import 'record_codec.dart';
 import 'stats_reader.dart';
 
@@ -11,6 +13,162 @@ class StoreReader {
   StoreReader(this._db, this.codec);
   final DatabaseExecutor _db;
   final RecordCodec codec;
+
+  /// Called inside SqliteStore.read's serialized transaction. Preflight every
+  /// source collection before materializing JSON or session interval lists.
+  /// No device paths, notification intents or arbitrary SQL appear in output.
+  Future<BackupSnapshot> backupSnapshot({
+    required Future<DateTime> Function() createdUtc,
+    BackupLimits limits = const BackupLimits(),
+  }) async {
+    limits.validate();
+    if ((await _db.query(
+      'sessions',
+      columns: ['id'],
+      where: "status IN ('running', 'paused')",
+      limit: 1,
+    )).isNotEmpty) {
+      throw const ActiveSessionConflict();
+    }
+    final capturedUtc = await createdUtc();
+    final schema = (await _db.query('schema_version')).single['version'] as int;
+    if (schema != 1 && schema != 2) {
+      throw const InvalidBackup('Unsupported export source schema');
+    }
+    const tables = [
+      'groups',
+      'items',
+      'item_revisions',
+      'sessions',
+      'active_intervals',
+      'operations',
+      'ledger_entries',
+      'wallet_projection',
+      'award_balances',
+      'quest_accrual_remainders',
+      'daily_goal_revisions',
+      'daily_achievements',
+      'app_settings',
+    ];
+    var sourceCount = 0;
+    var sourceBytes = 0;
+    for (final table in tables) {
+      final columns = await _db.rawQuery('PRAGMA table_info($table)');
+      final size = columns
+          .map((column) {
+            final name = (column['name'] as String).replaceAll('"', '""');
+            return 'COALESCE(length(CAST("$name" AS BLOB)), 0)';
+          })
+          .join(' + ');
+      final row = (await _db.rawQuery(
+        'SELECT COUNT(*) AS count, COALESCE(SUM($size + 64), 0) AS bytes, '
+        'COALESCE(MAX($size), 0) AS largest FROM $table',
+      )).single;
+      sourceCount += row['count'] as int;
+      sourceBytes += row['bytes'] as int;
+      if (sourceCount > limits.maxRecords ||
+          sourceBytes > limits.maxFileBytes ||
+          (row['largest'] as int) > limits.maxRecordBytes) {
+        throw const InvalidBackup('Stored snapshot exceeds export limits');
+      }
+    }
+    if ((await _db.rawQuery('PRAGMA foreign_key_check')).isNotEmpty ||
+        (await projectionMismatches()).isNotEmpty) {
+      throw const InvalidBackup('Stored relationships or projections disagree');
+    }
+    final records = {
+      for (final name in backupCollections) name: <Map<String, Object?>>[],
+    };
+    const portable = BackupRecordCodec();
+    final bounded = BackupCodec(limits: limits);
+    var outputBytes = 0;
+    void add(String name, Object value) {
+      final record = portable.toJson(value);
+      final bytes = bounded.recordByteLength(record);
+      outputBytes += bytes;
+      if (bytes > limits.maxRecordBytes || outputBytes > limits.maxFileBytes) {
+        throw const InvalidBackup('Logical snapshot exceeds export limits');
+      }
+      records[name]!.add(record);
+    }
+
+    // Stable primary-key order; a page never escapes the surrounding transaction.
+    Future<void> each(
+      String table,
+      String order,
+      Future<void> Function(Map<String, Object?>) consume,
+    ) async {
+      var offset = 0;
+      while (true) {
+        final page = await _db.query(
+          table,
+          orderBy: order,
+          limit: 128,
+          offset: offset,
+        );
+        for (final row in page) {
+          await consume(row);
+        }
+        if (page.length < 128) return;
+        offset += page.length;
+      }
+    }
+
+    await each('groups', 'id', (r) async => add('groups', _group(r)));
+    await each('items', 'id', (r) async => add('items', await _currentItem(r)));
+    await each('item_revisions', 'item_id, revision', (r) async {
+      add(
+        'itemRevisions',
+        (await itemRevision(
+          ItemId(r['item_id'] as String),
+          Revision(r['revision'] as int),
+        ))!,
+      );
+    });
+    await each(
+      'sessions',
+      'id',
+      (r) async => add('sessions', await _session(r)),
+    );
+    await each('operations', 'id', (r) async {
+      add(
+        'operations',
+        (await operation<Object>(OperationId(r['id'] as String)))!,
+      );
+    });
+    await each('ledger_entries', 'id', (r) async => add('ledger', _ledger(r)));
+    add('wallet', await wallet());
+    await each(
+      'award_balances',
+      'award_id',
+      (r) async => add('awardBalances', _award(r)),
+    );
+    await each('quest_accrual_remainders', 'quest_id, currency', (r) async {
+      add(
+        'accrualRemainders',
+        (await remainder(
+          ItemId(r['quest_id'] as String),
+          VirtualCurrency.values.byName(r['currency'] as String),
+        ))!,
+      );
+    });
+    // Group by quest to reuse the typed goal reader without duplicate scans.
+    await each('items', 'id', (r) async {
+      for (final goal in await goals(ItemId(r['id'] as String))) {
+        add('goalRevisions', goal);
+      }
+    });
+    for (final achievement in await achievements()) {
+      add('achievements', achievement);
+    }
+    add('settings', await settings());
+    return BackupSnapshot(
+      createdUtc: capturedUtc,
+      sourceSchemaVersion: SchemaVersion(schema),
+      currencyMetadataVersion: codec.currencies.version,
+      records: records,
+    );
+  }
 
   /// Bounded, ledger-derived statistics inside this same read snapshot.
   Future<List<StatsBucket>> statistics(StatsQuery query) =>
