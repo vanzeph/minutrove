@@ -35,13 +35,44 @@ session repository, dismisses itself and calls that callback on completion or
 early end. Opening the compact slot or selecting the current Quest resumes its
 screen without creating another operation or implicitly unpausing it.
 
-The expense route takes the latest displayed `Item`, `AwardBalance`, and explicit
-`SessionConflictChoice`. Opening or cancelling the form must change nothing.
-Pass the balance revision and conflict choice to the transactional expense
-command on submit. Recheck the active session if it changed while the form was
-open; do not reuse consent to end a different session. Combined Awards always
-let users choose time or expense, with an exhausted dimension disabled. This
-also applies while their time session is active.
+The expense route receives the selected Item and displayed AwardBalance. Home
+opens it without ending an occupied session. Compose the delivered route with
+these same app dependencies:
+
+```dart
+final expenses = AwardExpenseRoute(
+  economy: economy,
+  watchHome: () => watchSqliteHome(store),
+  readHome: () => readSqliteHome(store),
+  operationId: editing.operationId,
+);
+// HomeRoutes(..., openExpense: expenses.open)
+```
+
+The last HomeRoutes.openExpense argument remains for route compatibility and is
+`SessionConflictChoice.cancel`: the expense dialog obtains fresh consent at
+submission, after validating the actual cost. Opening or cancelling changes
+nothing. It rereads the committed Home snapshot before submission and again
+after conflict confirmation; consent is rejected if the occupying session or
+balance changed. The existing economy command atomically settles the current
+session and expense. A newly detected conflict returns to explicit confirmation.
+All UI entry points must share the app's one command coordinator and modal
+navigation; an alternate mutation source must not bypass this composition.
+
+The centered dialog parses with the Award's pinned currency precision, keeps
+invalid/over-budget input editable, previews remaining budget, and uses the
+committed receipt for success. Live allowance updates do not overwrite the input.
+Read failures preserve it and offer retry. Submission blocks repeated taps and
+closing. A lost write acknowledgement freezes request arguments and reuses the
+operation ID on retry; it cannot create a second expense. Stale revision errors
+keep the input for explicit review and resubmission.
+
+Combined Awards show live time and budget separately, with exhausted actions
+disabled and an explanation, plus Configure and Cancel. Their Home tile remains
+until both dimensions are exhausted. Archived purchased balances remain usable;
+exhaustion retains the definition and ledger history. Time-only Awards continue
+to start through the shared session repository and use available time; pause and
+early end are owned by the session screen.
 
 The compact timer projects remaining time from the injected clock and committed
 session checkpoint, excluding paused time. It never settles money, schedules
@@ -64,7 +95,7 @@ use operation IDs and revision checks; a retry of a failed start keeps its ID.
 Run the real SQLite interaction tests:
 
 ```sh
-flutter test test/features/home_shell_test.dart --reporter expanded
+flutter test test/features/home_shell_test.dart test/features/award_expense_test.dart --reporter expanded
 flutter test test/features/home_shell_test.dart --dart-define=UI_EVIDENCE=true
 ```
 
