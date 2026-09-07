@@ -2,6 +2,9 @@
 library;
 
 export 'award_redemption_repository.dart';
+export 'backup_codec.dart';
+export 'backup_exporter.dart';
+export 'backup_record_codec.dart';
 export 'command_coordinator.dart';
 export 'economy_repository.dart';
 export 'item_repository.dart';

@@ -1,5 +1,9 @@
 # SQLite storage
 
+Portable exports use the separate [version 1 backup format](../../docs/backup-format.md)
+and `SqliteBackupExporter`. The format includes synthetic compatibility fixtures,
+resource bounds, integrity rules and the integration contract for later restore.
+
 `data.dart` exposes `SqliteStore`, transaction-scoped record adapters and the
 versioned migration registry. `native_store.dart` supplies the Android/iOS
 `sqflite` factory; tests supply `databaseFactoryFfi` against real SQLite files.
