@@ -1,6 +1,10 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:minutrove/app.dart';
+import 'package:minutrove/features/sessions/sessions.dart';
+import 'package:minutrove/ui/core/core.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:minutrove/data/data.dart';
 import 'package:minutrove/data/native_store.dart';
@@ -126,6 +130,140 @@ void main() {
         );
       } finally {
         await store?.close();
+        await dir.delete(recursive: true);
+      }
+    },
+  );
+  testWidgets(
+    'native session view pauses, resumes and ends with durable earnings',
+    (tester) async {
+      const clock = NativeClock();
+      final dir = await Directory.systemTemp.createTemp(
+        'minutrove-native-session-ui-',
+      );
+      final store = f.success(
+        await openNativeStore(
+          path: '${dir.path}/session.db',
+          currencies: f.metadata,
+          initialSettings: f.settings,
+        ),
+      );
+      final calendar = SessionCalendar();
+      final sessions = SqliteSessionRepository(
+        store: store,
+        clock: clock,
+        calendar: calendar,
+      );
+      var serial = 500;
+      OperationId operation() => OperationId(f.uuid(serial++));
+      var returned = 0;
+      try {
+        final item = f.success(
+          await SqliteItemRepository(
+            store: store,
+            clock: clock,
+            calendar: calendar,
+          ).saveItem(
+            operationId: operation(),
+            item: configuredQuest(seconds: 600),
+            expectedRevision: null,
+          ),
+        );
+        final started = f.success(
+          await sessions.startSession(
+            operationId: operation(),
+            itemId: item.id,
+            expectedItemRevision: item.revision,
+            conflictChoice: SessionConflictChoice.cancel,
+          ),
+        );
+        final recovery = SessionRecovery(
+          store: store,
+          sessions: sessions,
+          recordDiagnostic: (_) async {},
+        );
+        final route = SessionRoute(
+          sessions: sessions,
+          clock: clock,
+          watchSession: (id) => watchSqliteSession(store, id),
+          reconcile: () => recovery.reconcile(operationId: operation()),
+          operationId: operation,
+        );
+        await tester.pumpWidget(
+          MinutroveApp(
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: TroveButton(
+                    label: 'Open current session',
+                    onPressed: () => route.open(
+                      context,
+                      started.session.id,
+                      () => returned++,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Open current session'));
+        Future<void> ready(String label) async {
+          for (var attempt = 0; attempt < 100; attempt++) {
+            await Future<void>.delayed(const Duration(milliseconds: 100));
+            await tester.pump();
+            final matches = tester.widgetList<TroveButton>(
+              find.widgetWithText(TroveButton, label),
+            );
+            if (matches.any((button) => button.onPressed != null)) return;
+          }
+          fail('Session action did not become ready: $label');
+        }
+
+        await ready('Pause session');
+        await tester.ensureVisible(find.text('Pause session'));
+        await tester.tap(find.text('Pause session'));
+        await ready('Resume session');
+        final paused = f.success(
+          await sessions.getSession(started.session.id),
+        )!;
+        expect(paused.status, SessionStatus.paused);
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+        await recovery.reconcile(operationId: operation());
+        expect(
+          f.success(await sessions.getSession(paused.id))!.settled.value,
+          paused.settled.value,
+        );
+        await tester.ensureVisible(find.text('Resume session'));
+        await tester.tap(find.text('Resume session'));
+        await ready('Pause session');
+        await tester.ensureVisible(find.text('End & keep earnings'));
+        await tester.tap(find.text('End & keep earnings'));
+        for (var attempt = 0; attempt < 100 && returned == 0; attempt++) {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+          await tester.pump();
+        }
+        await tester.pumpAndSettle();
+        expect(returned, 1);
+        expect(find.text('Open current session'), findsOneWidget);
+        final ended = f.success(await sessions.getSession(paused.id))!;
+        expect(ended.status, SessionStatus.ended);
+        expect(ended.settled.value, greaterThanOrEqualTo(paused.settled.value));
+        expect(f.success(await store.read((r) => r.activeSession())), isNull);
+        expect(
+          f.success(await store.read((r) => r.projectionMismatches())),
+          isEmpty,
+        );
+        final view = await watchSqliteSession(store, ended.id).first;
+        expect(
+          view!.earned.coins.units,
+          f.success(await store.read((r) => r.wallet())).balances.coins.units,
+        );
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+        await store.close();
         await dir.delete(recursive: true);
       }
     },
