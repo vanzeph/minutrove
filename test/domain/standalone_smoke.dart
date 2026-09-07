@@ -10,14 +10,15 @@ final class ClockFixture implements Clock {
   );
 }
 
-void main() {
+Future<void> main() async {
   final Clock clock = ClockFixture();
   final result = accrue(
     perHour: MicroAmount.parse('120'),
     active: Milliseconds.seconds(300),
     remainder: AccrualRemainder(0),
   );
-  if (!clock.now().utc.isUtc || result.amount != MicroAmount.parse('10')) {
+  if (!(await clock.now()).utc.isUtc ||
+      result.amount != MicroAmount.parse('10')) {
     throw StateError('Standalone domain contract failed');
   }
 }

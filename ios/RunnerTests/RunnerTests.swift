@@ -14,6 +14,19 @@ final class RunnerTests: XCTestCase, AVAudioPlayerDelegate {
     finished?.fulfill()
   }
 
+  func testDurableClockHasStableBootAndFreshMonotonicSamples() throws {
+    let first = try DurableClock.now()
+    Thread.sleep(forTimeInterval: 0.05)
+    let second = try DurableClock.now()
+    let firstMonotonic = try XCTUnwrap(first["monotonicMilliseconds"] as? Int64)
+    let secondMonotonic = try XCTUnwrap(second["monotonicMilliseconds"] as? Int64)
+    XCTAssertEqual(first["bootId"] as? String, second["bootId"] as? String)
+    XCTAssertTrue((first["bootId"] as? String)?.hasPrefix("ios-boot-") == true)
+    XCTAssertGreaterThanOrEqual(secondMonotonic - firstMonotonic, 40)
+    let utc = try XCTUnwrap(second["utcMilliseconds"] as? Int64)
+    XCTAssertLessThan(abs(utc - Int64(Date().timeIntervalSince1970 * 1000)), 1000)
+  }
+
   func testBundledAssetLoadsAndPlaysOnce() throws {
     let url = try XCTUnwrap(Bundle.main.url(forResource: "completion_chime", withExtension: "wav"))
     let player = try AVAudioPlayer(contentsOf: url)

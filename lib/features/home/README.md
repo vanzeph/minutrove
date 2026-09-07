@@ -101,3 +101,10 @@ flutter test test/features/home_shell_test.dart --dart-define=UI_EVIDENCE=true
 
 Screenshots in `build/ui-evidence` use only synthetic activity. Widget tests are
 not physical-device VoiceOver/TalkBack, background clock, or notification tests.
+
+The compact timer awaits fresh `Clock.now()` samples and ignores results from a
+replaced session/revision or a disposed widget. An unavailable sample shows
+`Time unavailable` until a later sample succeeds; paused display uses committed
+progress. It never posts ledger changes. Native startup/resume integration uses
+[SessionLifecycle](../../platform/sessions/README.md) before commands rely on the
+current session revision.

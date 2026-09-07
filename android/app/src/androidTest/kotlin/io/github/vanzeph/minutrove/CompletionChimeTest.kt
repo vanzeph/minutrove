@@ -11,6 +11,19 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 class CompletionChimeTest {
+    @Test fun durableClockHasStableBootAndFreshMonotonicSamples() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val first = DurableClock(context).now()
+        Thread.sleep(50)
+        val second = DurableClock(context).now()
+        assertEquals(first["bootId"], second["bootId"])
+        assertTrue((first["bootId"] as String).startsWith("android-boot-"))
+        assertTrue((second["monotonicMilliseconds"] as Long) -
+            (first["monotonicMilliseconds"] as Long) >= 40)
+        assertTrue(kotlin.math.abs((second["utcMilliseconds"] as Long) -
+            System.currentTimeMillis()) < 1000)
+    }
+
     @Test fun bundledAssetDecodesAndPlaysExactlyOnce() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val completed = CountDownLatch(1)

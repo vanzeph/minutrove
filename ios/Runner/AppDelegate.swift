@@ -27,6 +27,16 @@ import UserNotifications
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     guard let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "CompletionChime") else { return }
+    let clockChannel = FlutterMethodChannel(name: "io.github.vanzeph.minutrove/clock",
+                                            binaryMessenger: registrar.messenger())
+    clockChannel.setMethodCallHandler { call, result in
+      guard call.method == "now" else { result(FlutterMethodNotImplemented); return }
+      do {
+        result(try DurableClock.now())
+      } catch {
+        result(FlutterError(code: "clock_unavailable", message: "Could not sample system clock", details: nil))
+      }
+    }
     let channel = FlutterMethodChannel(name: "io.github.vanzeph.minutrove/completion_chime",
                                        binaryMessenger: registrar.messenger())
     channel.setMethodCallHandler { call, result in

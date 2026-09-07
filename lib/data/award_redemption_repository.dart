@@ -68,7 +68,7 @@ final class SqliteAwardRedemptionRepository {
             'Unsupported reporting zone',
           );
         }
-        return timestamp = calendar.assign(clock.now().utc, zone);
+        return timestamp = calendar.assign((await clock.now()).utc, zone);
       },
       action: (command) async {
         final item = await command.requireItem(awardId, expectedRevision);

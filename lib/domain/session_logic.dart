@@ -60,7 +60,9 @@ SessionProgress advanceSession({
     }
     elapsed = sameBoot
         ? now.monotonic.value - anchor.monotonic.value
-        : now.utc.difference(anchor.utc).inMilliseconds;
+        : session.duration.value -
+              session.settled.value -
+              session.deadlineUtc!.difference(now.utc).inMilliseconds;
     elapsed = elapsed.clamp(0, session.duration.value - session.settled.value);
   }
   final added = _intervals(session, now, elapsed, calendar);
@@ -83,8 +85,10 @@ SessionProgress advanceSession({
   final discontinuity =
       !sameBoot ||
       (session.status == SessionStatus.running &&
-          now.utc.difference(anchor.utc).inMilliseconds !=
-              now.monotonic.value - anchor.monotonic.value);
+          (now.utc.difference(anchor.utc).inMilliseconds -
+                      (now.monotonic.value - anchor.monotonic.value))
+                  .abs() >
+              1000);
   return SessionProgress(
     session: Session(
       id: session.id,
@@ -166,4 +170,14 @@ List<ActiveInterval> _intervals(
     offset += length;
   }
   return result;
+}
+
+/// Read-only countdown projection. It never settles currency or allowances.
+int remainingSessionMilliseconds(Session session, ClockReading now) {
+  final remaining = session.duration.value - session.settled.value;
+  if (session.status != SessionStatus.running) return remaining;
+  final elapsed = now.bootId == session.checkpoint.bootId
+      ? now.monotonic.value - session.checkpoint.monotonic.value
+      : remaining - session.deadlineUtc!.difference(now.utc).inMilliseconds;
+  return remaining - elapsed.clamp(0, remaining);
 }

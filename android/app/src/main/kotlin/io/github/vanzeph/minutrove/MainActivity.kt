@@ -7,6 +7,19 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        val clock = DurableClock(this)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
+            "io.github.vanzeph.minutrove/clock").setMethodCallHandler { call, result ->
+            if (call.method != "now") {
+                result.notImplemented()
+            } else {
+                try {
+                    result.success(clock.now())
+                } catch (_: Exception) {
+                    result.error("clock_unavailable", "Could not sample system clock", null)
+                }
+            }
+        }
         val chime = CompletionChime(this)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
             "io.github.vanzeph.minutrove/completion_chime").setMethodCallHandler { call, result ->
