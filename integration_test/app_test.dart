@@ -10,7 +10,11 @@ import 'package:minutrove/data/data.dart';
 import 'package:minutrove/data/native_store.dart';
 import 'package:minutrove/domain/domain.dart';
 import 'package:minutrove/main.dart' as app;
+import 'package:flutter/services.dart';
+import 'package:minutrove/platform/audio/completion_chime.dart';
 import 'package:minutrove/platform/clock/native_clock.dart';
+import 'package:minutrove/platform/notifications/completion_notifier.dart';
+import 'package:minutrove/platform/notifications/ios_notification_scheduler.dart';
 import 'package:minutrove/platform/sessions/recovery_diagnostics.dart';
 import 'package:minutrove/platform/sessions/session_recovery.dart';
 
@@ -267,5 +271,144 @@ void main() {
         await dir.delete(recursive: true);
       }
     },
+  );
+
+  testWidgets(
+    'iOS notifications sync stably and a suppressed chime keeps settlement exact',
+    (tester) async {
+      if (!Platform.isIOS) {
+        // The channel contract under test is implemented by the iOS runner;
+        // other platforms skip rather than fail on a missing handler.
+        markTestSkipped('iOS-only notification channel');
+        return;
+      }
+      final scheduler = IosNotificationScheduler();
+      final permission = await scheduler.permission();
+      expect(
+        permission,
+        anyOf(
+          equals(NotificationPermission.notDetermined),
+          equals(NotificationPermission.granted),
+          equals(NotificationPermission.denied),
+          equals(NotificationPermission.restricted),
+        ),
+        reason: 'The native permission status must map to the domain enum',
+      );
+
+      // Desired-state contract against the real UserNotifications center,
+      // independently of authorization: stable identifier replacement is the
+      // primitive behind pause/resume/end and crash reconciliation.
+      const channel = MethodChannel(IosNotificationScheduler.channelName);
+      const completionId = 'aaaaaaaa-1a1a-4a1a-8a1a-111111111111';
+      final now = DateTime.now().toUtc();
+      Future<List<Object?>?> sync(int offsetSeconds) =>
+          channel.invokeListMethod<Object?>('syncRequests', {
+            'operationId': 'synthetic-sync',
+            'desired': [
+              {
+                'completionId': completionId,
+                'deadlineMilliseconds': now
+                    .add(Duration(seconds: offsetSeconds))
+                    .millisecondsSinceEpoch,
+              },
+            ],
+          });
+      final scheduled = await sync(600);
+      expect(scheduled, ['minutrove.completion.$completionId']);
+      final rescheduled = await sync(1200);
+      expect(rescheduled, [
+        'minutrove.completion.$completionId',
+      ], reason: 'Rescheduling replaces the same stable identifier');
+      final cancelled = await channel.invokeListMethod<Object?>(
+        'syncRequests',
+        {'operationId': 'synthetic-sync', 'desired': <Object>[]},
+      );
+      expect(cancelled, isEmpty, reason: 'A pause or end cancels the request');
+
+      // Full lifecycle with the real store, clock and chime. Without
+      // authorization the OS owns nothing, so the foreground fallback is
+      // submitted and suppressed by system sound policy; settlement and the
+      // durable handled marker must both stay exact, with no repeat.
+      final dir = await Directory.systemTemp.createTemp(
+        'minutrove-native-notifications-',
+      );
+      SqliteStore? store;
+      try {
+        const clock = NativeClock();
+        final db = f.success(
+          await openNativeStore(
+            path: '${dir.path}/notifications.db',
+            currencies: f.metadata,
+            initialSettings: f.settings,
+          ),
+        );
+        store = db;
+        final calendar = SessionCalendar();
+        final item = f.success(
+          await SqliteItemRepository(
+            store: db,
+            clock: clock,
+            calendar: calendar,
+          ).saveItem(
+            operationId: OperationId(f.uuid(200)),
+            item: configuredQuest(seconds: 1),
+            expectedRevision: null,
+          ),
+        );
+        final sessions = SqliteSessionRepository(
+          store: db,
+          clock: clock,
+          calendar: calendar,
+        );
+        final notifier = CompletionNotifier(
+          store: db,
+          scheduler: scheduler,
+          chime: CompletionChime(),
+          isForeground: () => true,
+        );
+        final started = f.success(
+          await sessions.startSession(
+            operationId: OperationId(f.uuid(201)),
+            itemId: item.id,
+            expectedItemRevision: item.revision,
+            conflictChoice: SessionConflictChoice.cancel,
+          ),
+        );
+        await notifier.onMutation(started);
+        expect(
+          scheduler.ownsDelivery(started.session.completionId),
+          isFalse,
+          reason: 'An unauthorized app leaves nothing pending',
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 1100));
+        final completed = f.success(
+          await sessions.reconcileSession(
+            operationId: OperationId(f.uuid(202)),
+            sessionId: started.session.id,
+          ),
+        );
+        expect(completed.session.status, SessionStatus.completed);
+        expect(completed.session.settled.value, 1000);
+        expect(completed.economy.wallet.balances.coins.units, 33333);
+        expect(await notifier.onMutation(completed), isA<Success<bool>>());
+        final intents = f.success(
+          await db.read((records) => records.notificationIntents()),
+        );
+        expect(
+          intents.single.completionChimeHandled,
+          isTrue,
+          reason: 'The suppressed cue is still consumed exactly once',
+        );
+        expect(await notifier.onMutation(completed), isA<Success<bool>>());
+        expect(
+          f.success(await db.read((r) => r.projectionMismatches())),
+          isEmpty,
+        );
+      } finally {
+        await store?.close();
+        await dir.delete(recursive: true);
+      }
+    },
+    skip: !Platform.isIOS,
   );
 }
