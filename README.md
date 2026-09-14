@@ -117,6 +117,12 @@ uses Flutter's native XCTest driver to run the same Dart integration suite,
 requiring at least one result and success for every test. This avoids relying
 on a Flutter CLI debug-service connection. The existing reproducible audio-source check
 and native Android/iOS one-shot sound tests also remain mandatory in these jobs.
+The Android job additionally runs behavioral notification scheduling tests on
+an Android 13 (API 33) emulator, covering deadline delivery, pause/resume/end
+cancellation, permission denial, screen-off delivery, the terminated-process
+stale-cue guard and reboot re-arming; on-time delivery is not guaranteed and
+never required for correct settlement (see
+[lib/platform/notifications/README.md](lib/platform/notifications/README.md)).
 All four jobs must pass before a
 routine merge; the merged main run must also pass. No job needs signing secrets
 or a paid testing service. Actions use immutable commit pins and checkout does

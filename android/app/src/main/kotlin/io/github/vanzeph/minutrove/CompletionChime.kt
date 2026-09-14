@@ -15,6 +15,9 @@ class CompletionChime(private val context: Context) {
     companion object {
         const val CHANNEL_ID = "minutrove_completion_v1"
         const val SOUND_RESOURCE = "completion_chime"
+
+        /** Stable notification tag shared by the foreground and scheduled paths. */
+        fun completionTag(completionId: String) = "minutrove.completion.$completionId"
     }
 
     private val manager = context.getSystemService(NotificationManager::class.java)
@@ -38,11 +41,17 @@ class CompletionChime(private val context: Context) {
     }
 
     @Suppress("DEPRECATION")
-    fun notification(): Notification {
+    fun notification(completionId: String? = null): Notification {
         val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(context, CHANNEL_ID)
                       else Notification.Builder(context).setSound(soundUri, attributes)
         val intent = Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            .putExtra(CompletionNotifications.EXTRA_FROM_NOTIFICATION, true)
+        if (completionId != null) {
+            // Tap routing: the app opens Home with the settled result for this
+            // completion. Pass it through the launch intent only; never log it.
+            intent.putExtra(CompletionNotifications.EXTRA_COMPLETION_ID, completionId)
+        }
         val pendingIntent = PendingIntent.getActivity(context, 0, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         return builder.setSmallIcon(R.drawable.ic_completion)
@@ -64,7 +73,7 @@ class CompletionChime(private val context: Context) {
         }
         // No FLAG_INSISTENT, full-screen intent, repeated scheduling, volume
         // change, or request for notification-policy access.
-        manager.notify("minutrove.completion.$completionId", 0, notification())
+        manager.notify(completionTag(completionId), 0, notification(completionId))
         return "submitted"
     }
 }
