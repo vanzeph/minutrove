@@ -181,7 +181,10 @@ final class SessionNotifications {
   /// once per completion in this process. Other notifications keep the
   /// framework default handled by the superclass.
   func presentOptions(for notification: UNNotification) -> UNNotificationPresentationOptions? {
-    let identifier = notification.request.identifier
+    presentOptions(forIdentifier: notification.request.identifier)
+  }
+
+  func presentOptions(forIdentifier identifier: String) -> UNNotificationPresentationOptions? {
     guard identifier.hasPrefix(CompletionChime.identifierPrefix) else { return nil }
     if soundedIdentifiers.contains(identifier) { return [] }
     soundedIdentifiers.insert(identifier)

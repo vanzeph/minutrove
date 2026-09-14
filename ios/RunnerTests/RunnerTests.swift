@@ -192,21 +192,15 @@ final class RunnerTests: XCTestCase, AVAudioPlayerDelegate {
     }
     wait(for: [presented], timeout: 10)
     // The dedup decision is exercised directly: one sound per identifier.
-    func notification(completionId: String) throws -> UNNotification {
-      UNNotification(
-        request: try SessionNotifications.deadlineRequest(
-          completionId: completionId,
-          deadlineMilliseconds: Int64(Date().timeIntervalSince1970 * 1000) + 60_000),
-        date: Date(), trigger: nil)
-    }
-    let first = notifications.presentOptions(for: try notification(
-      completionId: "55555555-5555-4555-8555-555555555555"))
-    XCTAssertEqual(first, [.sound])
-    let second = notifications.presentOptions(for: try notification(
-      completionId: "55555555-5555-4555-8555-555555555555"))
-    XCTAssertEqual(second, [], "The immediate fallback must not repeat a sounded completion")
-    let other = notifications.presentOptions(for: try notification(
-      completionId: "66666666-6666-4666-8666-666666666666"))
-    XCTAssertEqual(other, [.sound])
+    let identifier = "minutrove.completion.55555555-5555-4555-8555-555555555555"
+    XCTAssertEqual(notifications.presentOptions(forIdentifier: identifier), [.sound])
+    XCTAssertEqual(notifications.presentOptions(forIdentifier: identifier), [],
+                   "The immediate fallback must not repeat a sounded completion")
+    XCTAssertEqual(
+      notifications.presentOptions(
+        forIdentifier: "minutrove.completion.66666666-6666-4666-8666-666666666666"),
+      [.sound])
+    XCTAssertEqual(notifications.presentOptions(forIdentifier: "other.app.notification"), nil,
+                   "Notifications outside the completion prefix keep framework defaults")
   }
 }
