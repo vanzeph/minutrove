@@ -39,10 +39,15 @@ void main() {
   testWidgets('native launch and navigation smoke', (tester) async {
     app.main();
     await tester.pumpAndSettle();
+    // A fresh install opens the real onboarding; skipping reaches the live
+    // Home shell over the on-device SQLite store.
+    expect(find.text('Turn your time into treasure'), findsOneWidget);
+    await tester.tap(find.text('Skip setup'));
+    await tester.pumpAndSettle();
     const destinations = {
-      'Shop': 'Make room for what you love.',
-      'Stats': 'See your time add up.',
-      'Home': 'A little effort, a little treasure.',
+      'Shop': 'Reward Shop',
+      'Stats': 'Your progress',
+      'Home': 'Make time for what matters.',
     };
     for (final destination in destinations.entries) {
       await tester.tap(find.text(destination.key));

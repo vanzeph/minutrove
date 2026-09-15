@@ -48,11 +48,20 @@ import UserNotifications
     let clockChannel = FlutterMethodChannel(name: "io.github.vanzeph.minutrove/clock",
                                             binaryMessenger: registrar.messenger())
     clockChannel.setMethodCallHandler { call, result in
-      guard call.method == "now" else { result(FlutterMethodNotImplemented); return }
-      do {
-        result(try DurableClock.now())
-      } catch {
-        result(FlutterError(code: "clock_unavailable", message: "Could not sample system clock", details: nil))
+      switch call.method {
+      case "now":
+        do {
+          result(try DurableClock.now())
+        } catch {
+          result(FlutterError(code: "clock_unavailable", message: "Could not sample system clock", details: nil))
+        }
+      // The device zone for the first-run reporting setting. The identifier is
+      // an IANA location name on iOS; the Dart side still validates it against
+      // the pinned IANA database before storing it.
+      case "deviceTimeZone":
+        result(TimeZone.current.identifier)
+      default:
+        result(FlutterMethodNotImplemented)
       }
     }
     let channel = FlutterMethodChannel(name: "io.github.vanzeph.minutrove/completion_chime",

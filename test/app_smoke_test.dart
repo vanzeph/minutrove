@@ -1,29 +1,52 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:minutrove/app.dart';
+
+import 'app_startup_test.dart' show StartupFixture, pumpApp, tapText;
+import 'features/home_shell_test.dart' show settle;
 
 void main() {
-  testWidgets('launches Home and navigates across the native shell', (
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() async {
+    await (FontLoader(
+      'Nunito Sans',
+    )..addFont(rootBundle.load('assets/fonts/NunitoSans.ttf'))).load();
+    await (FontLoader(
+      'MaterialIcons',
+    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+  });
+
+  late StartupFixture fixture;
+  setUp(() async {
+    fixture = StartupFixture();
+    await fixture.create();
+  });
+  tearDown(() async {
+    await fixture.destroy();
+  });
+
+  testWidgets('launches onboarding, then navigates the live shell', (
     tester,
   ) async {
-    await tester.pumpWidget(const MinutroveApp());
-    expect(find.text('A little effort, a little treasure.'), findsOneWidget);
-    expect(
-      find.text('Development preview · Sample screens only'),
-      findsOneWidget,
-    );
+    await pumpApp(tester, fixture);
+    await settle(tester);
+    // First run shows onboarding; skipping reaches the real empty Home.
+    expect(find.text('Turn your time into treasure'), findsOneWidget);
+    await tapText(tester, 'Skip setup');
+    await settle(tester);
+    expect(find.text('Make time for what matters.'), findsOneWidget);
+    expect(find.text('0 Coins'), findsOneWidget);
 
-    await tester.tap(find.text('Shop'));
-    await tester.pumpAndSettle();
-    expect(find.text('Make room for what you love.'), findsOneWidget);
+    await tapText(tester, 'Shop');
+    await settle(tester);
+    expect(find.text('Reward Shop'), findsOneWidget);
 
-    await tester.tap(find.text('Stats'));
-    await tester.pumpAndSettle();
-    expect(find.text('See your time add up.'), findsOneWidget);
+    await tapText(tester, 'Stats');
+    await settle(tester);
+    expect(find.text('Your progress'), findsOneWidget);
 
-    await tester.tap(find.text('Home'));
-    await tester.pumpAndSettle();
-    expect(find.text('A little effort, a little treasure.'), findsOneWidget);
+    await tapText(tester, 'Home');
+    await settle(tester);
+    expect(find.text('Make time for what matters.'), findsOneWidget);
   });
 
   testWidgets('small phone supports large text and labeled tap targets', (
@@ -37,10 +60,12 @@ void main() {
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     final semantics = tester.ensureSemantics();
 
-    await tester.pumpWidget(const MinutroveApp());
-    for (final destination in ['Home', 'Shop', 'Stats']) {
-      await tester.tap(find.text(destination));
-      await tester.pumpAndSettle();
+    await pumpApp(tester, fixture);
+    await settle(tester);
+    await tapText(tester, 'Skip setup');
+    await settle(tester);
+    for (final destination in ['Shop', 'Stats', 'Home']) {
+      await tapText(tester, destination);
       expect(tester.takeException(), isNull);
       await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
       await expectLater(tester, meetsGuideline(iOSTapTargetGuideline));

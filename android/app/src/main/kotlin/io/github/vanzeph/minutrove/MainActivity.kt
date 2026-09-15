@@ -42,14 +42,21 @@ class MainActivity : FlutterActivity() {
         val clock = DurableClock(this)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
             "io.github.vanzeph.minutrove/clock").setMethodCallHandler { call, result ->
-            if (call.method != "now") {
-                result.notImplemented()
-            } else {
-                try {
-                    result.success(clock.now())
-                } catch (_: Exception) {
-                    result.error("clock_unavailable", "Could not sample system clock", null)
+            when (call.method) {
+                "now" -> {
+                    try {
+                        result.success(clock.now())
+                    } catch (_: Exception) {
+                        result.error("clock_unavailable", "Could not sample system clock", null)
+                    }
                 }
+                // The device zone for the first-run reporting setting. A manual
+                // fixed offset reports as "GMT±hh:mm"; the Dart side validates
+                // the identifier against the pinned IANA database and falls
+                // back to UTC when it is not a real location.
+                "deviceTimeZone" ->
+                    result.success(java.util.TimeZone.getDefault().id)
+                else -> result.notImplemented()
             }
         }
         val chime = CompletionChime(this)
