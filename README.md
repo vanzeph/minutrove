@@ -137,6 +137,24 @@ remain separate gates; a simulator smoke pass does not assert they passed. Keep
 fixtures synthetic and exclude personal data and private design documents from
 source, logs and evidence.
 
+## Privacy, data and compatibility
+
+Minutrove keeps everything on the device: one private SQLite database inside
+the app sandbox, no network requests (the release build declares no `INTERNET`
+permission), no analytics or accounts, and only notification-related OS
+permissions. Backups are unencrypted files you export explicitly.
+[docs/privacy.md](docs/privacy.md) records the full audit — where data lives,
+every permission and its purpose, the fixed-code local diagnostics, and the
+commands to re-verify each claim from source.
+
+The portable `.minutrove` backup format, its version-compatibility rules and
+size bounds are specified in [docs/backup-format.md](docs/backup-format.md);
+the completion-notification behavior record, including permission-denied
+paths and remaining physical-device acceptance, is in
+[docs/notifications.md](docs/notifications.md). User-facing help for earning,
+redeeming, consuming, statistics, configuration and backup ships inside the
+app under Settings → About & licenses.
+
 ## Project layout and scope
 
 See [lib/README.md](lib/README.md) for the domain, data, platform, shared UI, and
