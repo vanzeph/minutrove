@@ -103,20 +103,42 @@ jobs:
           bash tool/test_ios_chime.sh
 
   integration-ios:
-    name: iOS simulator integration
-    # XCTest drives the Dart suite without a Flutter CLI debug-service connection.
+    name: iOS simulator integration (${{ matrix.name }})
+    # XCTest drives the Dart suite without a Flutter CLI debug-service
+    # connection. The matrix legs are the OS versions the macos-15 image
+    # genuinely provides runtimes for: the pinned toolchain (Xcode 16.4 /
+    # iPhone 16 / iOS 18.5) and the newest installed major (Xcode 26.3 /
+    # iPhone 17 / iOS 26.2). Each leg also runs the native RunnerTests
+    # suite so UserNotifications and chime behavior is observed per OS.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: iPhone 16 / iOS 18.5
+            xcode: '16.4'
+            sdk: '18.5'
+            runtime: iOS-18-5
+            devicetype: iPhone-16
+          - name: iPhone 17 / iOS 26.2
+            xcode: '26.3'
+            sdk: '26.2'
+            runtime: iOS-26-2
+            devicetype: iPhone-17
     runs-on: macos-15
     timeout-minutes: 25
     env:
-      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
+      MINUTROVE_IOS_RUNTIME: com.apple.CoreSimulator.SimRuntime.${{ matrix.runtime }}
+      MINUTROVE_IOS_DEVICETYPE: com.apple.CoreSimulator.SimDeviceType.${{ matrix.devicetype }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - name: Verify Xcode and install pinned Flutter
         run: |
-          test "$(xcodebuild -version | head -1)" = 'Xcode 16.4'
-          test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = '18.5'
+          test "$(xcodebuild -version | head -1)" = 'Xcode ${{ matrix.xcode }}'
+          test "$(xcrun --sdk iphonesimulator --show-sdk-version)" = '${{ matrix.sdk }}'
+          test "$(xcrun simctl list runtimes | grep -c '${{ matrix.runtime }}')" -ge 1
           bash tool/install_flutter.sh "$RUNNER_TEMP/flutter"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - name: Run native integration tests through XCTest
@@ -124,7 +146,7 @@ jobs:
         run: |
           flutter precache --ios
           bash tool/integration_ios.sh
-          echo 'Dart integration tests passed through XCTest on iPhone 16 / iOS 18.5. Physical-device acceptance remains separate.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Dart integration tests and native RunnerTests passed through XCTest on ${{ matrix.name }} (Xcode ${{ matrix.xcode }}). Physical-device acceptance remains separate.' >> "$GITHUB_STEP_SUMMARY"
 
   integration-android:
     name: Android emulator integration

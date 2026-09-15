@@ -69,5 +69,7 @@ passed test.
 flutter test test/platform/ios_notification_scheduler_test.dart \
   test/platform/completion_notifier_test.dart
 bash tool/test_ios_chime.sh        # includes the native scheduling tests
-bash tool/integration_ios.sh       # real-channel sync + suppressed-sound flow
+bash tool/integration_ios.sh       # real-channel sync + suppressed-sound flow;
+                                   # also runs the native scheduling suite on
+                                   # every simulator leg (iOS 18.5 and 26.2)
 ```
