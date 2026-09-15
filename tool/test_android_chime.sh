@@ -38,10 +38,9 @@ user_unlocked() {
   return 1
 }
 "$ADB" wait-for-device
-"$ADB" root >/dev/null 2>&1 || true
-"$ADB" shell cmd lock_settings set-disabled --user 0 true >/dev/null 2>&1 || true
-"$ADB" shell wm dismiss-keyguard >/dev/null 2>&1 || true
+# adb root restarts adbd and races every following probe; stay unprivileged.
 "$ADB" shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
+"$ADB" shell wm dismiss-keyguard >/dev/null 2>&1 || true
 "$ADB" shell input keyevent 82 >/dev/null 2>&1 || true
 "$ADB" shell input swipe 360 1000 360 200 >/dev/null 2>&1 || true
 "$ADB" shell wm dismiss-keyguard >/dev/null 2>&1 || true
