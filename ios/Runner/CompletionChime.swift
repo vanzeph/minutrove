@@ -7,7 +7,9 @@ final class CompletionChime {
   static let soundName = "completion_chime.wav"
   static let identifierPrefix = "minutrove.completion."
 
-  static func request(completionId: String) throws -> UNNotificationRequest {
+  /// Shared by the immediate cue and the scheduled deadline notification so
+  /// both deliver the same one-shot pixel-game sound and copy.
+  static func makeContent() throws -> UNMutableNotificationContent {
     guard Bundle.main.url(forResource: "completion_chime", withExtension: "wav") != nil else {
       throw NSError(domain: "MinutroveChime", code: 1)
     }
@@ -16,9 +18,13 @@ final class CompletionChime {
     content.body = "Your time is complete. Rest or begin again when ready."
     content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: soundName))
     content.interruptionLevel = .active
+    return content
+  }
+
+  static func request(completionId: String) throws -> UNNotificationRequest {
     // A nil trigger is immediate, one-shot delivery. No repeating timer.
     return UNNotificationRequest(identifier: identifierPrefix + completionId,
-                                 content: content, trigger: nil)
+                                 content: try makeContent(), trigger: nil)
   }
 
   static func playOnce(completionId: String, result: @escaping FlutterResult) {
