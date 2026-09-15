@@ -24,5 +24,23 @@ for attempt in $(seq 1 120); do
   sleep 2
 done
 [[ "$("$SDK_ROOT/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r')" == 1 ]] || { echo 'Emulator boot timed out'; exit 1; }
+# boot_completed alone can precede credential-encrypted storage availability;
+# runtime permission grants and notification posts fail while user 0 is locked.
+for attempt in $(seq 1 60); do
+  if [[ "$("$SDK_ROOT/platform-tools/adb" shell getprop sys.user.0.unlock_completed | tr -d '\r')" == 1 ]]; then break; fi
+  sleep 2
+done
+[[ "$("$SDK_ROOT/platform-tools/adb" shell getprop sys.user.0.unlock_completed | tr -d '\r')" == 1 ]] || { echo 'Emulator user unlock timed out'; exit 1; }
 "$SDK_ROOT/platform-tools/adb" shell getprop ro.build.version.release
+# A user-launched app sits in the active standby bucket; keep alarm delivery
+# expectations aligned with that real-world state on the headless emulator,
+# which otherwise never interacts with the app.
+"$SDK_ROOT/platform-tools/adb" shell am set-standby-bucket io.github.vanzeph.minutrove active
 (cd android && ./gradlew app:connectedDebugAndroidTest)
+# Denial pass: revoking a runtime permission while the app process runs kills
+# it, so the permission flips while nothing is running and the denial class
+# starts fresh inside the denied state. The main suite passed above with the
+# permission granted; restore it afterwards for reproducible follow-up runs.
+"$SDK_ROOT/platform-tools/adb" shell pm revoke io.github.vanzeph.minutrove android.permission.POST_NOTIFICATIONS
+"$SDK_ROOT/platform-tools/adb" shell am instrument -w -e class io.github.vanzeph.minutrove.NotificationDenialTest io.github.vanzeph.minutrove.test/androidx.test.runner.AndroidJUnitRunner
+"$SDK_ROOT/platform-tools/adb" shell pm grant io.github.vanzeph.minutrove android.permission.POST_NOTIFICATIONS

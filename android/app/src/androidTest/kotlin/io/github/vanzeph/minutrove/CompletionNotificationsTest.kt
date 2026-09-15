@@ -43,6 +43,12 @@ class CompletionNotificationsTest {
     fun setUp() {
         notifications = CompletionNotifications(context)
         grantPostNotifications()
+        // Fail fast with a clear cause instead of opaque scheduling timeouts
+        // when the harness could not establish the permission baseline.
+        assertTrue(
+            "POST_NOTIFICATIONS baseline not granted before test",
+            notifications.canNotify(),
+        )
         CompletionChime(context).createChannel()
         clearState()
     }
@@ -61,15 +67,19 @@ class CompletionNotificationsTest {
 
     private fun grantPostNotifications() {
         if (android.os.Build.VERSION.SDK_INT >= 33) {
-            runShell("pm grant ${context.packageName} android.permission.POST_NOTIFICATIONS")
+            // The instrumentation API is authoritative and fails loudly, unlike
+            // a shell pm grant whose failures this process would never see.
+            instrumentation.uiAutomation.grantRuntimePermission(
+                context.packageName,
+                android.Manifest.permission.POST_NOTIFICATIONS,
+            )
         }
     }
 
-    private fun revokePostNotifications() {
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            runShell("pm revoke ${context.packageName} android.permission.POST_NOTIFICATIONS")
-        }
-    }
+    // A live runtime-permission revoke would be answered with the process
+    // being killed ("permissions revoked"); denial coverage lives in
+    // NotificationDenialTest, launched by the harness with the permission
+    // already revoked while no process was running.
 
     private fun runShell(command: String) {
         instrumentation.uiAutomation.executeShellCommand(command).use { fd ->
@@ -121,25 +131,9 @@ class CompletionNotificationsTest {
 
     // ---- Permission -------------------------------------------------------
 
-    @Test fun permissionMapsUndeterminedDeniedAndGrantedStates() {
-        assertTrue(notifications.canNotify())
+    @Test fun grantedPermissionReadsAsGrantedOnTheSchedulingBaseline() {
         assertEquals("granted", notifications.permissionState())
-
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            notifications.clearForTest()
-            revokePostNotifications()
-            // Fresh-install state: the runtime permission is ungranted and no
-            // contextual request has been made yet.
-            assertEquals("notDetermined", notifications.permissionState())
-
-            // After a first contextual request that the user denied, the same
-            // OS state reads as denied: re-prompting is not promised.
-            notifications.markPermissionRequested()
-            assertEquals("denied", notifications.permissionState())
-
-            grantPostNotifications()
-            assertEquals("granted", notifications.permissionState())
-        }
+        assertTrue(notifications.canNotify())
     }
 
     @Test fun requestIsIdempotentPerOperationId() {
@@ -235,33 +229,27 @@ class CompletionNotificationsTest {
         assertTrue(notifications.storedDelivered().isEmpty())
     }
 
-    @Test fun deniedPermissionSuppressesSchedulingAndDelivery() {
-        if (android.os.Build.VERSION.SDK_INT < 33) {
-            // Pre-13 images cannot revoke per-app notification delivery from
-            // the shell; denial is covered by the API 33+ branch in CI.
-            return
+    // Denial behavior runs in NotificationDenialTest with the permission
+    // already revoked by the harness: a live runtime-permission revoke
+    // kills this process, so this class never flips the permission.
+
+    @Test fun deliveryStillHappensWithoutExactAlarmAccess() {
+        // Opportunistic exactness: withdrawing the special exact-alarm access
+        // must degrade to an inexact allow-while-idle alarm, never to silence.
+        // On-time delivery is not asserted; settlement never depends on it.
+        runShell("pm revoke ${context.packageName} android.permission.SCHEDULE_EXACT_ALARM")
+        try {
+            notifications.reconcile(
+                listOf(pending(sessionA, completionA, deadlineIn(2500))),
+                listOf(),
+            )
+            assertEquals(1, notifications.storedPending().size)
+            await("inexact deadline notification", 20000) {
+                notifications.hasNotification(completionA)
+            }
+        } finally {
+            runShell("pm grant ${context.packageName} android.permission.SCHEDULE_EXACT_ALARM")
         }
-        revokePostNotifications()
-        notifications.markPermissionRequested()
-        assertEquals("denied", notifications.permissionState())
-        val outcome = notifications.reconcile(
-            listOf(pending(sessionA, completionA, deadlineIn(2500))),
-            listOf(),
-        )
-        assertEquals("denied", outcome.permission)
-        assertTrue(outcome.delivered.isEmpty())
-        // Nothing is armed while delivery is impossible: re-enabling in system
-        // settings followed by the next reconcile re-arms from the intent.
-        assertTrue(notifications.storedPending().isEmpty())
-        assertNeverHappens("denied notification", 6000) {
-            notifications.hasNotification(completionA)
-        }
-        grantPostNotifications()
-        notifications.reconcile(
-            listOf(pending(sessionA, completionA, deadlineIn(2500))),
-            listOf(),
-        )
-        await("re-enabled notification", 10000) { notifications.hasNotification(completionA) }
     }
 
     // ---- Lock, termination gap, reboot --------------------------------------
@@ -354,8 +342,18 @@ class CompletionNotificationsTest {
 
     // ---- Re-entry and tap routing -------------------------------------------
 
-    @Test fun completionCueTapOpensTheAppAndCarriesTheCompletionIdentity() {
+    @Test fun completionCueTapRoutesToTheSingleTopAppEntryWithTheCompletionIdentity() {
         val notification = CompletionChime(context).notification(completionA)
+        // The tap intent resolves to the app's single-top entry; launching the
+        // Flutter activity inside the instrumentation process would crash the
+        // runner, so end-to-end tap-through stays with device acceptance.
+        val tap = Intent(context, MainActivity::class.java)
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        assertEquals(
+            MainActivity::class.java.name,
+            tap.resolveActivity(context.packageManager)?.className,
+        )
+        assertNotNull(notification.contentIntent)
         val routed = CompletionNotifications.launchCompletionFrom(
             Intent(context, MainActivity::class.java)
                 .putExtra(CompletionNotifications.EXTRA_FROM_NOTIFICATION, true)
@@ -376,17 +374,6 @@ class CompletionNotificationsTest {
                     .putExtra(CompletionNotifications.EXTRA_COMPLETION_ID, "x".repeat(129)),
             ),
         )
-        // The tap intent really resolves to the single-top main activity.
-        val monitor = instrumentation.addMonitor(MainActivity::class.java.name, null, false)
-        try {
-            notification.contentIntent!!.send()
-            assertNotNull(
-                "Tap did not launch the app",
-                monitor.waitForActivityWithTimeout(20000),
-            )
-        } finally {
-            instrumentation.removeMonitor(monitor)
-        }
     }
 
     @Test fun reconciliationConvergesFromArbitraryStaleOsState() {
