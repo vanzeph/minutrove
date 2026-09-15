@@ -426,11 +426,23 @@ Future<List<String>> readMismatches(
   JourneyFixture fixture,
 ) => readStore(tester, fixture, (records) => records.projectionMismatches());
 
+/// Retract any software keyboard raised by text entry. On a real device the
+/// OS keyboard overlays the centered dialog and swallows taps aimed at the
+/// actions beneath it, so every entry helper closes it before the journey
+/// continues. (The Android emulator images run with a hardware keyboard, so
+/// only the iOS simulator actually raises one; unfocusing is harmless in
+/// every runner.)
+Future<void> dismissKeyboard(WidgetTester tester) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  await settle(tester);
+}
+
 Future<void> enterQuantity(WidgetTester tester, String text) async {
   final field = find.byKey(const ValueKey('purchase-quantity'));
   await awaitFinder(tester, field, 'The purchase quantity field is available');
   await tester.enterText(field, text);
   await tester.pump();
+  await dismissKeyboard(tester);
 }
 
 Future<void> enterExpenseAmount(WidgetTester tester, String text) async {
@@ -441,6 +453,21 @@ Future<void> enterExpenseAmount(WidgetTester tester, String text) async {
   await awaitFinder(tester, field, 'The expense amount field is available');
   await tester.enterText(field, text);
   await tester.pump();
+  await dismissKeyboard(tester);
+}
+
+/// Wait for the Home receipt of an ended session and dismiss it. Waiting on
+/// the button with the full bounded budget (rather than tapText's shorter
+/// awaitFinder) covers the native runners' slower watch cascades, and
+/// dismissing each receipt eagerly means a later receipt assertion can never
+/// be satisfied by a stale earlier one.
+Future<void> dismissSessionResult(WidgetTester tester) async {
+  await waitUntil(
+    tester,
+    () => find.text('Dismiss session result').evaluate().isNotEmpty,
+    'An ended session posts its Home receipt',
+  );
+  await tapText(tester, 'Dismiss session result');
 }
 
 int chartTotal(WidgetTester tester, StatsPeriod period) {
@@ -570,7 +597,7 @@ Future<void> journeyEarnPauseSplitCompleteRestart(
     () => find.text('Quest session').evaluate().isEmpty,
     'Ending early returns Home with the saved result',
   );
-  await tapText(tester, 'Dismiss session result');
+  await dismissSessionResult(tester);
   wallet = await readWallet(tester, fixture);
   expect(
     wallet.balances.coins.units,
@@ -1445,6 +1472,9 @@ Future<void> journeyExpenseBudgetAndExhaustion(
   await redeem(tester, fixture, food, 1);
   var wallet = await readWallet(tester, fixture);
   expect(wallet.balances.coins.units, 5000000);
+  // Dismiss the repository-driven Earner receipt now so the later Getaway
+  // receipt assertions can only be satisfied by that session's own receipt.
+  await dismissSessionResult(tester);
 
   // Record $12.50 of the $35 allowance through the real expense dialog.
   await tapTile(tester, 'Food');
@@ -1565,7 +1595,7 @@ Future<void> journeyExpenseBudgetAndExhaustion(
     () => find.text('Reward session').evaluate().isEmpty,
     'Ending the Award run returns Home',
   );
-  await tapText(tester, 'Dismiss session result');
+  await dismissSessionResult(tester);
   await settle(tester);
   balance = await readStore<AwardBalance?>(
     tester,
