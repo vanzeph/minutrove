@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minutrove/app.dart';
@@ -17,9 +18,11 @@ import 'package:minutrove/platform/notifications/completion_notifier.dart';
 import 'package:minutrove/platform/notifications/ios_notification_scheduler.dart';
 import 'package:minutrove/platform/sessions/recovery_diagnostics.dart';
 import 'package:minutrove/platform/sessions/session_recovery.dart';
+import 'package:sqflite/sqflite.dart' show databaseFactory;
 
 import '../test/data/support.dart' as f;
 import '../test/support/session_fixtures.dart';
+import '../test/support/backup_portability.dart' as p;
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -422,4 +425,227 @@ void main() {
     },
     skip: !Platform.isIOS,
   );
+
+  // Cross-platform backup portability: the same deterministic history runs
+  // through this platform's real SQLite, and its export must equal the
+  // committed reference bytes produced by every other platform. Because the
+  // bytes are pinned, restoring them on a fresh store here is exactly what
+  // restoring a file transferred from the other platform does.
+  testWidgets(
+    'this platform exports the cross-platform reference backup bytes',
+    (tester) async {
+      final dir = await Directory.systemTemp.createTemp(
+        'minutrove-portability-export-',
+      );
+      final world = await p.buildPortabilityHistory(
+        path: '${dir.path}/source.db',
+        factory: databaseFactory,
+      );
+      try {
+        final file = await world.export();
+        expect(
+          sha256.convert(file.bytes).toString(),
+          p.portabilityReferenceSha256,
+          reason: 'Every platform exports the same transferable bytes',
+        );
+        final coverage = await p.portabilityCoverage(file);
+        expect(coverage['years'], [2023, 2024, 2025, 2026]);
+        expect(coverage['budgetPrecisions'], [0, 2, 3]);
+        expect(coverage['archived'], [p.questWork.value, p.awardCharm.value]);
+        expect(coverage['achievements'], 5);
+        expect(
+          (coverage['remaindersNonZero'] as List),
+          isNotEmpty,
+          reason: 'Remainder carry survives this platform exactly',
+        );
+      } finally {
+        await world.close();
+        await dir.delete(recursive: true);
+      }
+    },
+  );
+
+  testWidgets(
+    'a transferred backup restores exact domain state and Stats here',
+    (tester) async {
+      final dir = await Directory.systemTemp.createTemp(
+        'minutrove-portability-restore-',
+      );
+      final source = await p.buildPortabilityHistory(
+        path: '${dir.path}/source.db',
+        factory: databaseFactory,
+      );
+      SqliteBackupRestorer? target;
+      try {
+        final transferred = await source.export();
+        final opened = await SqliteBackupRestorer.open(
+          path: '${dir.path}/target.db',
+          factory: databaseFactory,
+          currencies: p.portabilityCurrencies,
+          initialSettings: p.portabilitySettings,
+          clock: p.PortabilityClock(),
+          calendar: p.portabilityCalendar,
+        );
+        final restorer = f.success(opened);
+        target = restorer;
+        final beforeStats = await p.portabilityStatsBattery(source.store);
+        final beforeState = await p.portabilityDomainState(source.store);
+
+        final preview = f.success(await restorer.inspectBackup(transferred));
+        expect(preview.sha256, p.portabilityReferenceSha256);
+        expect(preview.createdUtc, p.portabilityCreatedUtc);
+        expect(preview.version.value, 1);
+        final liveSettings = f.success(
+          await restorer.store.read((r) => r.settings()),
+        );
+        final receipt = f.success(
+          await restorer.restoreBackup(
+            operationId: OperationId(f.uuid(800)),
+            file: transferred,
+            confirmation: RestoreConfirmation(
+              preview: preview,
+              expectedSettingsRevision: liveSettings.revision,
+            ),
+          ),
+        );
+        expect(receipt.sourceSha256, p.portabilityReferenceSha256);
+
+        expect(await p.portabilityDomainState(restorer.store), beforeState);
+        expect(await p.portabilityStatsBattery(restorer.store), beforeStats);
+        expect(
+          f.success(await restorer.store.read((r) => r.activeSession())),
+          isNull,
+        );
+        expect(
+          f.success(await restorer.store.read((r) => r.projectionMismatches())),
+          isEmpty,
+        );
+        // The replaced database still serves ordinary commands.
+        final items = SqliteItemRepository(
+          store: restorer.store,
+          clock: p.PortabilityClock(),
+          calendar: p.portabilityCalendar,
+        );
+        f.success(
+          await items.saveGroup(
+            operationId: OperationId(f.uuid(801)),
+            group: Group(
+              id: GroupId(f.uuid(802)),
+              revision: Revision(1),
+              name: 'After on-device restore',
+              order: 9,
+            ),
+            expectedRevision: null,
+          ),
+        );
+      } finally {
+        await source.close();
+        await target?.close();
+        await dir.delete(recursive: true);
+      }
+    },
+  );
+
+  for (final (name, mutation) in [
+    ('a flipped payload byte', 'corrupt'),
+    ('a truncated tail', 'truncate'),
+    ('a version from the future', 'future-version'),
+    ('foreign pinned currency metadata', 'foreign-currencies'),
+  ]) {
+    testWidgets('$name leaves this device\'s original backup target usable', (
+      tester,
+    ) async {
+      final dir = await Directory.systemTemp.createTemp(
+        'minutrove-portability-failure-',
+      );
+      SqliteBackupRestorer? live;
+      try {
+        final opened = await SqliteBackupRestorer.open(
+          path: '${dir.path}/live.db',
+          factory: databaseFactory,
+          currencies: p.portabilityCurrencies,
+          initialSettings: p.portabilitySettings,
+          clock: p.PortabilityClock(),
+          calendar: p.portabilityCalendar,
+        );
+        final restorer = f.success(opened);
+        live = restorer;
+        final items = SqliteItemRepository(
+          store: restorer.store,
+          clock: p.PortabilityClock(),
+          calendar: p.portabilityCalendar,
+        );
+        f.success(
+          await items.saveItem(
+            operationId: OperationId(f.uuid(810)),
+            item: Item(
+              id: p.questStudy,
+              revision: Revision(1),
+              name: 'Live-only quest',
+              iconKey: 'gamepad',
+              colorArgb: 0xff883366,
+              groupId: null,
+              order: 0,
+              archived: false,
+              configuration: QuestConfiguration(
+                duration: Milliseconds.seconds(60),
+                ratesPerHour: CurrencyAmounts(
+                  coins: MicroAmount(1000000),
+                  gems: MicroAmount(0),
+                ),
+              ),
+            ),
+            expectedRevision: null,
+          ),
+        );
+        final world = await p.buildPortabilityHistory(
+          path: '${dir.path}/source.db',
+          factory: databaseFactory,
+        );
+        final file = p.mutatedBackup((await world.export()).bytes, mutation);
+        await world.close();
+
+        expect(
+          await restorer.inspectBackup(file),
+          isA<Failure<BackupPreview>>(),
+        );
+        expect(
+          await restorer.restoreBackup(
+            operationId: OperationId(f.uuid(811)),
+            file: file,
+            confirmation: RestoreConfirmation(
+              preview: BackupPreview(
+                version: BackupVersion(1),
+                createdUtc: p.portabilityCreatedUtc,
+                sha256: sha256.convert(file.bytes).toString(),
+                recordCounts: const {},
+              ),
+              expectedSettingsRevision: Revision(1),
+            ),
+          ),
+          isA<Failure<RestoreReceipt>>(),
+        );
+        expect(
+          f.success(await restorer.store.read((r) => r.items())).single.name,
+          'Live-only quest',
+          reason: 'The original stays readable after a failed restore',
+        );
+        f.success(
+          await items.saveGroup(
+            operationId: OperationId(f.uuid(812)),
+            group: Group(
+              id: GroupId(f.uuid(813)),
+              revision: Revision(1),
+              name: 'Still writable',
+              order: 0,
+            ),
+            expectedRevision: null,
+          ),
+        );
+      } finally {
+        await live?.close();
+        await dir.delete(recursive: true);
+      }
+    });
+  }
 }

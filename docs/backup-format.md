@@ -161,6 +161,11 @@ noncanonical/duplicate-key JSON, verifies envelope integrity and record counts,
 and checks the field allowlist and exact numeric syntax. Newer versions return
 `UnsupportedBackupVersion`. Storage/clock failures return `StorageUnavailable`;
 errors never include file content. All these paths retain original data.
+Cross-device transfer has its own acceptance gate: a deterministic multi-year
+scenario with every currency precision, archived items, goal awards and
+remainder carry exports byte-identical reference bytes on host, iOS and
+Android, and restoring the reference reproduces exact domain state and Stats
+on each platform. See [backup-portability record](backup-portability.md).
 
 Decoding is **not restore approval or full semantic validation**. The restore
 adapter additionally validates supported currency metadata, value ranges,

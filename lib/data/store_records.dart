@@ -604,9 +604,12 @@ final class StoreTransaction extends StoreReader {
     await _db.delete('groups', where: 'id = ?', whereArgs: [id.value]);
   }
 
-  /// Appends immutable history and points the current item at it, in one commit.
-  /// The command layer owns expected-revision and history-safe edit validation.
-  Future<void> putItem(ItemRevision v) async {
+  /// Appends immutable history without moving the current item pointer.
+  /// Restore replays a whole history before pointing the item at its latest
+  /// revision, so an old revision may name a group removed from `groups`
+  /// (the portable format keeps that historical reference) without tripping
+  /// the items→groups foreign key mid-replay.
+  Future<void> insertItemHistory(ItemRevision v) async {
     final item = v.snapshot;
     await _db.insert('item_revisions', {
       'item_id': item.id.value,
@@ -615,18 +618,27 @@ final class StoreTransaction extends StoreReader {
       'snapshot': codec.encode(item),
       ..._eventRow(v.recordedAt, 'recorded'),
     });
-    await _put(
-      'items',
-      {
-        'id': item.id.value,
-        'revision': item.revision.value,
-        'group_id': item.groupId?.value,
-        'sort_order': item.order,
-        'archived': item.archived ? 1 : 0,
-      },
-      'id = ?',
-      [item.id.value],
-    );
+  }
+
+  /// Points the current items row at an already inserted history revision.
+  Future<void> pointItem(Item item) => _put(
+    'items',
+    {
+      'id': item.id.value,
+      'revision': item.revision.value,
+      'group_id': item.groupId?.value,
+      'sort_order': item.order,
+      'archived': item.archived ? 1 : 0,
+    },
+    'id = ?',
+    [item.id.value],
+  );
+
+  /// Appends immutable history and points the current item at it, in one commit.
+  /// The command layer owns expected-revision and history-safe edit validation.
+  Future<void> putItem(ItemRevision v) async {
+    await insertItemHistory(v);
+    await pointItem(v.snapshot);
   }
 
   Future<void> insertOperation<T extends Object>(Operation<T> v) async {

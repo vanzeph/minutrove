@@ -67,7 +67,6 @@ void main() {
   late SqliteStore store;
   late SqliteAwardRedemptionRepository repo;
   late TestClock clock;
-  int ledgerSerial = 1000;
   Future<void> open({DatabaseFactory? factory}) async {
     store = f.success(
       await SqliteStore.open(
@@ -81,7 +80,6 @@ void main() {
       store: store,
       clock: clock,
       calendar: TestCalendar(),
-      newLedgerId: () => LedgerId(f.uuid(ledgerSerial++)),
     );
   }
 
@@ -89,7 +87,6 @@ void main() {
     directory = await Directory.systemTemp.createTemp('minutrove-redemption-');
     path = '${directory.path}/test.db';
     clock = TestClock();
-    ledgerSerial = 1000;
     await open();
   });
   tearDown(() async {
@@ -531,7 +528,6 @@ void main() {
     for (final failure in [...List.generate(writes, (i) => i + 1), -1, -2]) {
       await File(path).writeAsBytes(baseline, flush: true);
       await open(factory: factory);
-      ledgerSerial = 1000;
       factory.arm(failure: failure);
       expect(
         await buy(),
@@ -550,7 +546,6 @@ void main() {
         );
       }
       await open(factory: factory);
-      ledgerSerial = 1000;
       expect(codec.encode(f.success(await buy())), codec.encode(result));
       await audit();
       await store.close();

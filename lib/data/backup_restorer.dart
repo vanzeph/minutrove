@@ -375,13 +375,18 @@ final class SqliteBackupRestorer {
         Failure(:final error) => throw error,
       };
       final result = await temporary.write((tx) async {
-        // Sorted revisions leave the current pointer on each item's latest
-        // history row, which validation proved equals the current snapshot.
+        // History rows land first without touching current pointers, then
+        // each item points at its latest revision: an old revision may name
+        // a group removed from the snapshot, and only the validated current
+        // membership (which names existing groups) reaches the items table.
         for (final group in decoded.groups) {
           await tx.putGroup(group);
         }
         for (final revision in decoded.itemRevisions) {
-          await tx.putItem(revision);
+          await tx.insertItemHistory(revision);
+        }
+        for (final item in decoded.currentItems) {
+          await tx.pointItem(item);
         }
         for (final operation in decoded.operations) {
           await tx.insertOperation(operation);

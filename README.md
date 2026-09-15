@@ -79,6 +79,8 @@ flutter devices
 bash tool/integration.sh <device-id>
 # CI iOS path: build first, then run the Dart suite through native XCTest:
 bash tool/integration_ios.sh
+# CI Android path: boot a headless API 33 emulator and run the Dart suite:
+bash tool/integration_android.sh
 ```
 
 Every script verifies the Flutter/Dart revision and first resolves dependencies
@@ -114,7 +116,8 @@ development keys mean separate builds are not claimed to be byte-identical.
 runs on pull requests, main, task branches and manual dispatch. Independent jobs
 check source quality, build both Android outputs, build both iOS outputs, and
 run integration tests on iPhone 16 / iOS 18.5 in an isolated standard
-`macos-15` runner. The iOS CI script builds before booting the simulator and
+`macos-15` runner and on an Android 13 (API 33) x86_64 emulator in
+`ubuntu-24.04` with acceleration enabled. The iOS CI script builds before booting the simulator and
 uses Flutter's native XCTest driver to run the same Dart integration suite,
 requiring at least one result and success for every test. This avoids relying
 on a Flutter CLI debug-service connection. The existing reproducible audio-source check
