@@ -61,8 +61,10 @@ fi
 "$SDK_ROOT/platform-tools/adb" shell getprop ro.build.version.release
 # A user-launched app sits in the active standby bucket; keep alarm delivery
 # expectations aligned with that real-world state on the headless emulator,
-# which otherwise never interacts with the app.
-"$SDK_ROOT/platform-tools/adb" shell am set-standby-bucket io.github.vanzeph.minutrove active
+# which otherwise never interacts with the app. Best effort: an adb transport
+# hiccup here must not fail the run under set -e.
+"$SDK_ROOT/platform-tools/adb" shell am set-standby-bucket io.github.vanzeph.minutrove active >/dev/null 2>&1 || true
+"$SDK_ROOT/platform-tools/adb" get-state >/dev/null
 (cd android && ./gradlew app:connectedDebugAndroidTest)
 # Denial pass: revoking a runtime permission while the app process runs kills
 # it, so the permission flips while nothing is running and the denial class
