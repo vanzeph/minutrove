@@ -84,7 +84,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             const SizedBox(height: 12),
             ...switch (_load) {
               _PermissionLoad.loading => <Widget>[
-                const Center(child: CircularProgressIndicator()),
+                const Center(child: TroveActivityIndicator()),
               ],
               _PermissionLoad.failed => <Widget>[
                 const Text('Could not read the notification status.'),

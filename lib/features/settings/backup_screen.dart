@@ -89,7 +89,7 @@ class _BackupScreenState extends State<BackupScreen> {
               const SizedBox(height: 24),
               ...switch (_restoreStep) {
                 _RestoreStep.inspecting || _RestoreStep.replacing =>
-                  const <Widget>[Center(child: CircularProgressIndicator())],
+                  const <Widget>[Center(child: TroveActivityIndicator())],
                 _RestoreStep.confirming => _confirmPanel(),
                 _RestoreStep.restored => <Widget>[
                   Semantics(

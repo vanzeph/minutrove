@@ -300,7 +300,7 @@ class _SessionScreenState extends State<SessionScreen>
                     },
                   ),
                 ] else if (data == null)
-                  const Center(child: CircularProgressIndicator())
+                  const Center(child: TroveActivityIndicator())
                 else
                   SessionClockView(
                     session: data.session,

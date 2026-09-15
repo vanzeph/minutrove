@@ -33,6 +33,10 @@ class ItemTile extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Semantics(
+          // Own node: inside Home's group columns this tile must stay an
+          // individual focusable button for VoiceOver/TalkBack, instead of
+          // being merged into the surrounding group semantics.
+          container: true,
           button: true,
           enabled: onActivate != null,
           label: '$name, $label',

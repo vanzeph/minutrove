@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -73,6 +75,134 @@ void main() {
       }
     },
   );
+
+  test('text token colors meet WCAG AA contrast on their real surfaces', () {
+    // WCAG relative-luminance contrast, matching the audit measurements
+    // recorded with the token definitions.
+    double ratio(Color a, Color b) {
+      double channel(double value) {
+        final linear = value <= 0.03928
+            ? value / 12.92
+            : math.pow((value + .055) / 1.055, 2.4).toDouble();
+        return linear;
+      }
+
+      double luminance(Color color) {
+        final red = channel((color.r * 255).round() / 255);
+        final green = channel((color.g * 255).round() / 255);
+        final blue = channel((color.b * 255).round() / 255);
+        return .2126 * red + .7152 * green + .0722 * blue;
+      }
+
+      final first = luminance(a);
+      final second = luminance(b);
+      final hi = first > second ? first : second;
+      final lo = first > second ? second : first;
+      return (hi + .05) / (lo + .05);
+    }
+
+    // Normal-size body and secondary text on the two page surfaces.
+    for (final background in [TroveTokens.paper, Colors.white]) {
+      expect(
+        ratio(TroveTokens.ink, background),
+        greaterThanOrEqualTo(4.5),
+        reason: 'ink on ${background == Colors.white ? 'white' : 'paper'}',
+      );
+      expect(
+        ratio(TroveTokens.muted, background),
+        greaterThanOrEqualTo(4.5),
+        reason: 'muted on ${background == Colors.white ? 'white' : 'paper'}',
+      );
+    }
+    // Currency accents and the primary carry 18px w800 value text, which
+    // WCAG classifies as large text needing 3:1; the 4.5 assertions below
+    // keep them comfortably readable at smaller sizes too.
+    for (final accent in [
+      TroveTokens.primary,
+      TroveTokens.coin,
+      TroveTokens.gem,
+    ]) {
+      expect(ratio(accent, TroveTokens.paper), greaterThanOrEqualTo(4.5));
+      expect(ratio(accent, Colors.white), greaterThanOrEqualTo(4.5));
+    }
+    expect(ratio(Colors.white, TroveTokens.primary), greaterThanOrEqualTo(4.5));
+  });
+
+  // Both stock builders paint their motion rather than move layout (the
+  // Android zoom via a snapshot painter, the iOS cupertino slide via a paint
+  // translation), so the honest check is structural: with reduced motion the
+  // SDK's transition wrappers must be absent from the entering route, while
+  // they must still be present without the setting.
+  for (final platform in TargetPlatform.values) {
+    if (platform != TargetPlatform.android && platform != TargetPlatform.iOS) {
+      continue;
+    }
+    for (final reduceMotion in [true, false]) {
+      testWidgets('${platform.name} routes '
+          '${reduceMotion ? 'swap in place under' : 'animate without'} '
+          'reduced motion', (tester) async {
+        debugDefaultTargetPlatformOverride = platform;
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await _pushRouteWithMotionSetting(tester, reduceMotion);
+        await tester.pump();
+        // The entering route is still "offstage" for finders during its
+        // first transition frame, so include offstage elements everywhere.
+        final transitionWrapper = platform == TargetPlatform.android
+            ? find.byType(SnapshotWidget, skipOffstage: false)
+            : find.byType(SlideTransition, skipOffstage: false);
+        expect(
+          transitionWrapper,
+          reduceMotion ? findsNothing : findsWidgets,
+          reason: reduceMotion
+              ? 'reduced motion must not run the platform page transition'
+              : 'the normal platform transition still animates',
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Second page'), findsOneWidget);
+        // Reset within the body: foundation invariants are verified before
+        // registered teardown callbacks would run.
+        debugDefaultTargetPlatformOverride = null;
+      });
+    }
+  }
+
+  for (final reduceMotion in [true, false]) {
+    testWidgets('indeterminate loading is '
+        '${reduceMotion ? "static and labelled under" : "a spinner without"} '
+        'reduced motion', (tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: TroveTokens.theme(),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(disableAnimations: reduceMotion),
+            child: child!,
+          ),
+          home: const Scaffold(body: Center(child: TroveActivityIndicator())),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        find.byType(CircularProgressIndicator),
+        reduceMotion ? findsNothing : findsOneWidget,
+      );
+      expect(
+        find.text('Loading'),
+        reduceMotion ? findsOneWidget : findsNothing,
+        reason: 'the static placeholder replaces the moving spinner',
+      );
+      expect(
+        find.bySemanticsLabel(RegExp('Loading')),
+        findsOneWidget,
+        reason: 'the loading state is announced to screen readers',
+      );
+      semantics.dispose();
+    });
+  }
 
   testWidgets(
     'double tap configures without first activating; single tap defers',
@@ -296,6 +426,37 @@ void main() {
       expect(find.byType(Dialog), findsNothing);
     });
   }
+}
+
+Future<void> _pushRouteWithMotionSetting(
+  WidgetTester tester,
+  bool reduceMotion,
+) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: TroveTokens.theme(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(disableAnimations: reduceMotion),
+        child: child!,
+      ),
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => Center(
+            child: TroveButton(
+              label: 'Open page',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      const Scaffold(body: Center(child: Text('Second page'))),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.tap(find.text('Open page'));
 }
 
 Future<void> capture(WidgetTester tester, GlobalKey key, String name) async {

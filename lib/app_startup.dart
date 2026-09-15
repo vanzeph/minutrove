@@ -598,7 +598,7 @@ class _StartupProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: CircularProgressIndicator()));
+      const Scaffold(body: Center(child: TroveActivityIndicator()));
 }
 
 class _StartupFailed extends StatelessWidget {

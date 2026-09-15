@@ -357,5 +357,19 @@ class StatsPlotPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(StatsPlotPainter oldDelegate) => true;
+  bool shouldRepaint(StatsPlotPainter oldDelegate) {
+    // Multi-year histories rebuild charts for unchanged data (day timer,
+    // filter echoes, lifecycle resumes); only repaint when a value actually
+    // moved or the presentation changed.
+    if (oldDelegate.maximum != maximum ||
+        oldDelegate.graph != graph ||
+        oldDelegate.color != color ||
+        oldDelegate.values.length != values.length) {
+      return true;
+    }
+    for (var i = 0; i < values.length; i++) {
+      if (oldDelegate.values[i] != values[i]) return true;
+    }
+    return false;
+  }
 }
