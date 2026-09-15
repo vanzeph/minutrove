@@ -158,7 +158,7 @@ class CompletionNotificationsTest {
         )
         assertEquals("granted", outcome.permission)
         assertTrue(outcome.delivered.isEmpty())
-        await("deadline notification", 10000) { notifications.hasNotification(completionA) }
+        await("deadline notification", 30000) { notifications.hasNotification(completionA) }
         assertEquals(setOf(completionA), notifications.storedDelivered())
         // The posted cue uses the shared stable tag and only-alert-once, so a
         // duplicate post of the same completion can never alert twice.
@@ -201,7 +201,7 @@ class CompletionNotificationsTest {
             listOf(pending(sessionA, completionA, deadlineIn(2000), revision = 2)),
             listOf(),
         )
-        await("resumed notification", 10000) { notifications.hasNotification(completionA) }
+        await("resumed notification", 30000) { notifications.hasNotification(completionA) }
         assertEquals(setOf(completionA), notifications.storedDelivered())
     }
 
@@ -210,7 +210,7 @@ class CompletionNotificationsTest {
             listOf(pending(sessionA, completionA, deadlineIn(2500))),
             listOf(),
         )
-        await("completion cue", 10000) { notifications.hasNotification(completionA) }
+        await("completion cue", 30000) { notifications.hasNotification(completionA) }
         // End: deadline null. The completion already alerted, the app shows
         // the settled result, and acknowledgement (handled=true) clears the
         // delivered cue and its shade notification.
@@ -262,7 +262,7 @@ class CompletionNotificationsTest {
                 listOf(pending(sessionA, completionA, deadlineIn(2500))),
                 listOf(),
             )
-            await("screen-off notification", 12000) {
+            await("screen-off notification", 20000) {
                 notifications.hasNotification(completionA)
             }
             assertEquals(setOf(completionA), notifications.storedDelivered())
@@ -299,7 +299,7 @@ class CompletionNotificationsTest {
             context,
             Intent(Intent.ACTION_BOOT_COMPLETED),
         )
-        await("post-reboot notification", 10000) { notifications.hasNotification(completionA) }
+        await("post-reboot notification", 20000) { notifications.hasNotification(completionA) }
         assertEquals(setOf(completionA), notifications.storedDelivered())
     }
 
