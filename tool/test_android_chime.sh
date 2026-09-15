@@ -31,8 +31,10 @@ done
 ADB="$SDK_ROOT/platform-tools/adb"
 user_unlocked() {
   [[ "$("$ADB" shell getprop sys.user.0.unlock_completed | tr -d '\r')" == 1 ]] && return 0
+  # Some images never set the unlock property; the user manager state is the
+  # authoritative signal (e.g. "Started users state: [0=RUNNING_UNLOCKED]").
   "$ADB" shell dumpsys user 2>/dev/null | tr -d '\r' | \
-    grep -q 'UserInfo{0:.*running, unlocked' && return 0
+    grep -Eq 'State: RUNNING_UNLOCKED|0=RUNNING_UNLOCKED' && return 0
   return 1
 }
 "$ADB" wait-for-device
