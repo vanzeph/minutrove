@@ -7,6 +7,11 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        val backupFiles = BackupFiles(this)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
+            BackupFiles.channelName).setMethodCallHandler { call, result ->
+            backupFiles.handle(call, result)
+        }
         val clock = DurableClock(this)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
             "io.github.vanzeph.minutrove/clock").setMethodCallHandler { call, result ->
