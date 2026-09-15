@@ -52,18 +52,25 @@ class CompletionChimeTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val chime = CompletionChime(context)
         chime.createChannel()
-        val manager = context.getSystemService(NotificationManager::class.java)
-        val channel = manager.getNotificationChannel(CompletionChime.CHANNEL_ID)
-        assertEquals(chime.soundUri, channel.sound)
-        assertFalse(channel.canBypassDnd())
-        assertFalse(channel.shouldVibrate())
-        context.contentResolver.openAssetFileDescriptor(channel.sound, "r")!!.use {
-            assertTrue(it.length > 0)
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            val manager = context.getSystemService(NotificationManager::class.java)
+            val channel = manager.getNotificationChannel(CompletionChime.CHANNEL_ID)
+            assertEquals(chime.soundUri, channel.sound)
+            assertFalse(channel.canBypassDnd())
+            assertFalse(channel.shouldVibrate())
+            context.contentResolver.openAssetFileDescriptor(channel.sound, "r")!!.use {
+                assertTrue(it.length > 0)
+            }
         }
         val notification = chime.notification()
         assertEquals(0, notification.flags and Notification.FLAG_INSISTENT)
         assertTrue(notification.flags and Notification.FLAG_ONLY_ALERT_ONCE != 0)
         assertNull(notification.fullScreenIntent)
-        assertEquals(CompletionChime.CHANNEL_ID, notification.channelId)
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            assertEquals(CompletionChime.CHANNEL_ID, notification.channelId)
+        } else {
+            // Pre-O the sound travels on the notification itself, not a channel.
+            assertEquals(chime.soundUri, notification.sound)
+        }
     }
 }

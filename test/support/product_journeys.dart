@@ -464,15 +464,48 @@ Future<void> enterExpenseAmount(WidgetTester tester, String text) async {
   await dismissKeyboard(tester);
 }
 
+/// Wait for text that renders inside Home's lazily built list. A completion
+/// receipt is inserted at the top of that list; when an earlier step left the
+/// list scrolled down (native viewports wrap and size tiles differently, so
+/// ensureVisible can scroll arbitrarily deep), the receipt children are not
+/// mounted yet and no bounded wait can see them. Scroll back toward the top
+/// first, then apply the usual bounded finder wait.
+Future<void> awaitHomeText(
+  WidgetTester tester,
+  Finder finder,
+  String reason,
+) async {
+  for (var attempt = 0; attempt < 10 && finder.evaluate().isEmpty; attempt++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  if (finder.evaluate().isEmpty) {
+    final homeScroll = find
+        .descendant(
+          of: find.byKey(const PageStorageKey('home-scroll')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    // Scroll back toward the top in bounded steps; the lazily built list
+    // mounts earlier children as they re-enter the viewport. A positive dy
+    // drag moves the finger down, which scrolls toward the top, and
+    // dragUntilVisible cannot be used because its target has no element yet.
+    for (var step = 0; step < 12 && finder.evaluate().isEmpty; step++) {
+      await tester.drag(homeScroll, const Offset(0, 300));
+      await settle(tester);
+    }
+  }
+  await awaitFinder(tester, finder, reason);
+}
+
 /// Wait for the Home receipt of an ended session and dismiss it. Waiting on
 /// the button with the full bounded budget (rather than tapText's shorter
 /// awaitFinder) covers the native runners' slower watch cascades, and
 /// dismissing each receipt eagerly means a later receipt assertion can never
 /// be satisfied by a stale earlier one.
 Future<void> dismissSessionResult(WidgetTester tester) async {
-  await waitUntil(
+  await awaitHomeText(
     tester,
-    () => find.text('Dismiss session result').evaluate().isNotEmpty,
+    find.text('Dismiss session result'),
     'An ended session posts its Home receipt',
   );
   await tapText(tester, 'Dismiss session result');
@@ -718,15 +751,15 @@ Future<void> journeyEarnPauseSplitCompleteRestart(
   expect(mutation.session.status, SessionStatus.completed);
   expect(mutation.session.settled.value, 10000, reason: 'Capped at the run');
   expect(mutation.session.completionId, started.session.completionId);
-  await awaitFinder(
+  await awaitHomeText(
     tester,
     find.text('Time well spent'),
     'The foreground returns Home with the settled result',
   );
-  expect(
+  await awaitHomeText(
+    tester,
     find.textContaining('Sprint completed after 10s'),
-    findsOneWidget,
-    reason: 'The completion receipt states the settled time',
+    'The completion receipt states the settled time',
   );
   wallet = await readWallet(tester, fixture);
   expect(
@@ -1642,7 +1675,7 @@ Future<void> journeyExpenseBudgetAndExhaustion(
     fixture,
     (composition) => composition.lifecycle.reconcile(),
   );
-  await awaitFinder(
+  await awaitHomeText(
     tester,
     find.textContaining('Getaway completed'),
     'The final time allowance completed',

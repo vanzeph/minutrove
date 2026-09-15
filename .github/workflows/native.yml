@@ -62,14 +62,6 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Enable emulator acceleration
-        run: sudo chmod 666 /dev/kvm
-      - name: Verify native Android sound loading and single playback
-        timeout-minutes: 10
-        run: |
-          flutter pub get --enforce-lockfile
-          bash tool/test_android_chime.sh
-
   ios:
     name: iOS simulator app and unsigned device archive
     runs-on: macos-15
@@ -149,12 +141,28 @@ jobs:
           echo 'Dart integration tests and native RunnerTests passed through XCTest on ${{ matrix.name }} (Xcode ${{ matrix.xcode }}). Physical-device acceptance remains separate.' >> "$GITHUB_STEP_SUMMARY"
 
   integration-android:
-    name: Android emulator integration
+    name: Android emulator verification (${{ matrix.api-label }})
     # The same Dart suite runs against the app's real on-device SQLite via the
     # platform sqflite channel; combined with the iOS job it proves backup
-    # export/restore portability in both directions.
+    # export/restore portability in both directions. Each leg then runs the
+    # native instrumented suites on the same emulator: behavioral notification
+    # scheduling (pause/resume/end, screen-off, terminated-process stale cue,
+    # reboot re-arm), permission denial, chime single-playback, durable clock
+    # and manual clock-change recovery. API 24 is the supported minimum
+    # (Android 7.0), API 33 the established scheduling baseline (Android 13,
+    # runtime POST_NOTIFICATIONS), API 36 the current compile/target level.
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api-level: '24'
+            api-label: 'min API 24 / Android 7.0'
+          - api-level: '33'
+            api-label: 'baseline API 33 / Android 13'
+          - api-level: '36'
+            api-label: 'current API 36 / Android 16'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -169,11 +177,13 @@ jobs:
         run: |
           bash tool/install_flutter.sh "$RUNNER_TEMP/flutter"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'system-images;android-33;google_apis;x86_64'
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'system-images;android-${{ matrix.api-level }};google_apis;x86_64'
       - name: Enable emulator acceleration
         run: sudo chmod 666 /dev/kvm
-      - name: Run native integration tests on the emulator
-        timeout-minutes: 25
+      - name: Run Dart integration tests and native instrumented suites
+        timeout-minutes: 40
+        env:
+          MINUTROVE_ANDROID_INSTRUMENTED: '1'
         run: |
-          bash tool/integration_android.sh
-          echo 'Dart integration tests passed on Android 13 (API 33) x86_64 emulator. Physical-device acceptance remains separate.' >> "$GITHUB_STEP_SUMMARY"
+          bash tool/integration_android.sh '${{ matrix.api-level }}' x86_64
+          echo "Dart integration tests and instrumented notification/chime/clock suites passed on Android API ${{ matrix.api-level }} x86_64 emulator. Physical-device acceptance remains separate." >> "$GITHUB_STEP_SUMMARY"
