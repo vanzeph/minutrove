@@ -1,13 +1,16 @@
 package io.github.vanzeph.minutrove
 
+import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private lateinit var backupFiles: BackupFiles
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        val backupFiles = BackupFiles(this)
+        backupFiles = BackupFiles(this)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
             BackupFiles.channelName).setMethodCallHandler { call, result ->
             backupFiles.handle(call, result)
@@ -42,6 +45,13 @@ class MainActivity : FlutterActivity() {
             } catch (_: Exception) {
                 result.error("chime_submission_failed", "Could not submit completion sound", null)
             }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (::backupFiles.isInitialized) {
+            backupFiles.onActivityResult(requestCode, resultCode, data)
         }
     }
 }

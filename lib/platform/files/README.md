@@ -4,8 +4,9 @@
 `BackupFileSharer` interfaces over the method channel
 `io.github.vanzeph.minutrove/files`, backed by `BackupFiles.swift`
 (`UIDocumentPickerViewController` / `UIActivityViewController`) on iOS and
-`BackupFiles.kt` (`ACTION_OPEN_DOCUMENT` / `ACTION_SEND` through the
-embedded `FileProvider`) on Android.
+`BackupFiles.kt` (`ACTION_OPEN_DOCUMENT` through the classic
+startActivityForResult round trip, and `ACTION_SEND` through the embedded
+`FileProvider`) on Android.
 
 ## Adapter contract
 

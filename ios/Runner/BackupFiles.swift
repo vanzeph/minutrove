@@ -12,7 +12,7 @@ import UIKit
 /// nothing is read and nothing changes. Reading uses a coordinated file
 /// access; bytes are answered once and never cached. Sharing writes the
 /// immutable export to an OS-owned temporary location only for the hand-off.
-final class BackupFiles {
+final class BackupFiles: NSObject {
   static let channelName = "io.github.vanzeph.minutrove/files"
   static let fileExtension = "minutrove"
 

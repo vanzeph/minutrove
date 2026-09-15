@@ -11,6 +11,7 @@
 		C02000000000000000000001 /* IntegrationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = C02000000000000000000002 /* IntegrationTests.m */; };
         C01000000000000000000001 /* CompletionChime.swift in Sources */ = {isa = PBXBuildFile; fileRef = C01000000000000000000002; };
         C04000000000000000000001 /* SessionNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = C04000000000000000000002; };
+        C05000000000000000000001 /* BackupFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05000000000000000000002; };
         C01000000000000000000003 /* completion_chime.wav in Resources */ = {isa = PBXBuildFile; fileRef = C01000000000000000000004; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
@@ -51,6 +52,7 @@
 		C02000000000000000000002 /* IntegrationTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = IntegrationTests.m; sourceTree = "<group>"; };
         C01000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompletionChime.swift; sourceTree = "<group>"; };
         C04000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionNotifications.swift; sourceTree = "<group>"; };
+        C05000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupFiles.swift; sourceTree = "<group>"; };
         C01000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = completion_chime.wav; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
                 C01000000000000000000002,
                 C03000000000000000000002,
                 C04000000000000000000002,
+                C05000000000000000000002,
                 C01000000000000000000004,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
@@ -302,6 +305,7 @@
                 C01000000000000000000001,
                 C03000000000000000000001,
                 C04000000000000000000001,
+                C05000000000000000000001,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 			);
