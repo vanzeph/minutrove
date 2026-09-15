@@ -225,7 +225,11 @@ class CompletionNotificationsTest {
             listOf(settled(sessionA, completionA, handled = true)),
         )
         assertTrue(acknowledged.delivered.isEmpty())
-        assertFalse(notifications.hasNotification(completionA))
+        // Notification removal is a oneway binder call; on a slow runner the
+        // active list may lag the cancel by a moment.
+        await("acknowledged cue cleared", 10000) {
+            !notifications.hasNotification(completionA)
+        }
         assertTrue(notifications.storedDelivered().isEmpty())
     }
 
