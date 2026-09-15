@@ -79,8 +79,9 @@ flutter devices
 bash tool/integration.sh <device-id>
 # CI iOS path: build first, then run the Dart suite through native XCTest:
 bash tool/integration_ios.sh
-# CI Android path: boot a headless API 33 emulator and run the Dart suite:
-bash tool/integration_android.sh
+# CI Android path: boot a headless emulator at an API level (24/33/36) and run
+# the Dart suite, plus the instrumented suites on the same emulator:
+MINUTROVE_ANDROID_INSTRUMENTED=1 bash tool/integration_android.sh 33
 ```
 
 Every script verifies the Flutter/Dart revision and first resolves dependencies
@@ -116,19 +117,21 @@ development keys mean separate builds are not claimed to be byte-identical.
 runs on pull requests, main, task branches and manual dispatch. Independent jobs
 check source quality, build both Android outputs, build both iOS outputs, and
 run integration tests on iPhone 16 / iOS 18.5 in an isolated standard
-`macos-15` runner and on an Android 13 (API 33) x86_64 emulator in
-`ubuntu-24.04` with acceleration enabled. The iOS CI script builds before booting the simulator and
+`macos-15` runner. The iOS CI script builds before booting the simulator and
 uses Flutter's native XCTest driver to run the same Dart integration suite,
-requiring at least one result and success for every test. This avoids relying
-on a Flutter CLI debug-service connection. The existing reproducible audio-source check
+requiring at least one result and success for every test. This avoids relying on
+a Flutter CLI debug-service connection. The existing reproducible audio-source check
 and native Android/iOS one-shot sound tests also remain mandatory in these jobs.
-The Android job additionally runs behavioral notification scheduling tests on
-an Android 13 (API 33) emulator, covering deadline delivery, pause/resume/end
+The Android emulator job runs the same Dart integration suite plus the native
+instrumented suites at three API levels — 24 (the supported Android 7.0
+minimum), 33 (the established Android 13 scheduling baseline) and 36 (the
+current compile/target level) — covering deadline delivery, pause/resume/end
 cancellation, permission denial, screen-off delivery, the terminated-process
-stale-cue guard and reboot re-arming; on-time delivery is not guaranteed and
-never required for correct settlement (see
-[lib/platform/notifications/README.md](lib/platform/notifications/README.md)).
-All four jobs must pass before a
+stale-cue guard, reboot re-arming and manual clock-change re-arming; on-time
+delivery is not guaranteed and never required for correct settlement (see
+[lib/platform/notifications/README.md](lib/platform/notifications/README.md) and
+[docs/notifications.md](docs/notifications.md)).
+All four job groups must pass before a
 routine merge; the merged main run must also pass. No job needs signing secrets
 or a paid testing service. Actions use immutable commit pins and checkout does
 not persist repository credentials; the workflow token has only `contents: read`.
