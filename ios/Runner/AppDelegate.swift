@@ -5,6 +5,7 @@ import UserNotifications
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private let notifications = SessionNotifications()
+  private let backupFiles = BackupFiles()
 
   override func application(
     _ application: UIApplication,
@@ -71,6 +72,31 @@ import UserNotifications
     notificationChannel.setMethodCallHandler { [weak self] call, result in
       guard let self else { result(FlutterMethodNotImplemented); return }
       self.handleNotificationCall(call, on: notificationChannel, result: result)
+    }
+    let filesChannel = FlutterMethodChannel(name: BackupFiles.channelName,
+                                            binaryMessenger: registrar.messenger())
+    filesChannel.setMethodCallHandler { [weak self] call, result in
+      guard let self else { result(FlutterMethodNotImplemented); return }
+      self.handleBackupFilesCall(call, result: result)
+    }
+  }
+
+  private func handleBackupFilesCall(_ call: FlutterMethodCall,
+                                     result: @escaping FlutterResult) {
+    let arguments = call.arguments as? [String: Any]
+    switch call.method {
+    case "pickBackup":
+      backupFiles.pickBackup(result: result)
+    case "shareBackup":
+      guard let fileName = arguments?["fileName"] as? String,
+            let bytes = arguments?["bytes"] as? FlutterStandardTypedData else {
+        result(FlutterError(code: "invalid_share_request",
+                            message: "A file name and bytes are required", details: nil))
+        return
+      }
+      backupFiles.shareBackup(fileName: fileName, bytes: bytes, result: result)
+    default:
+      result(FlutterMethodNotImplemented)
     }
   }
 
