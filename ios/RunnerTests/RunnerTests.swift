@@ -63,8 +63,11 @@ final class RunnerTests: XCTestCase, AVAudioPlayerDelegate {
     XCTAssertEqual(request.identifier, "minutrove.completion.synthetic-completion")
     let trigger = try XCTUnwrap(request.trigger as? UNCalendarNotificationTrigger)
     XCTAssertFalse(trigger.repeats)
-    XCTAssertEqual(trigger.dateComponents.timeZone?.identifier, "UTC",
-                   "Without an explicit zone the trigger would drift with device settings")
+    // Foundation canonicalizes the UTC zone identifier to "GMT"; the zero
+    // offset is what prevents the deadline drifting with device settings.
+    let zone = try XCTUnwrap(trigger.dateComponents.timeZone)
+    XCTAssertEqual(zone.secondsFromGMT(), 0,
+                   "Without an explicit zero-offset zone the trigger would drift with device settings")
     let fireDate = try XCTUnwrap(trigger.nextTriggerDate())
     XCTAssertEqual(fireDate.timeIntervalSince1970,
                    TimeInterval(deadlineMs) / 1000,
