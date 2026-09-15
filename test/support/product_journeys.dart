@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:minutrove/app_startup.dart';
 import 'package:minutrove/data/data.dart';
 import 'package:minutrove/domain/domain.dart';
+import 'package:minutrove/features/home/home_shell.dart'
+    show CompactSessionSlot;
 import 'package:minutrove/features/stats/stats_chart.dart';
 import 'package:minutrove/platform/audio/completion_chime.dart';
 import 'package:minutrove/ui/core/core.dart';
@@ -395,6 +397,12 @@ Future<SessionMutation> runQuest(
   int activeMilliseconds,
 ) async {
   final started = await startQuestSession(tester, fixture, quest);
+  await settle(tester);
+  await waitUntil(
+    tester,
+    () => find.byType(CompactSessionSlot).evaluate().isNotEmpty,
+    'The started run occupies the session slot on Home',
+  );
   fixture.clock.advance(activeMilliseconds);
   return endQuestSession(tester, fixture, started);
 }
@@ -1621,6 +1629,13 @@ Future<void> journeyExpenseBudgetAndExhaustion(
     100000,
     reason: 'An Award run uses its available pooled time',
   );
+  // Let Home render the occupying run before it completes, so the slot
+  // watch sees the active-to-free transition and posts the receipt.
+  await waitUntil(
+    tester,
+    () => find.byType(CompactSessionSlot).evaluate().isNotEmpty,
+    'The final run occupies the session slot on Home',
+  );
   fixture.clock.advance(110000); // Past the remaining 100 seconds.
   await use(
     tester,
@@ -1974,7 +1989,11 @@ Future<void> journeyStatsAgreesWithLedger(
   expect(await totalOf(StatsPeriod.daily), 60000);
   expect(await totalOf(StatsPeriod.weekly), 360000);
   await revealChart(tester, find.text('6 min · Quest minutes'));
-  expect(find.text('6 min · Quest minutes'), findsOneWidget);
+  // The summary captions below state presence, not uniqueness: the stacked
+  // period cards repeat a metric's caption whenever their totals coincide,
+  // and a tall native viewport builds several cards at once. The ledger
+  // equality checks on each period's buckets are the real assertions.
+  expect(find.text('6 min · Quest minutes'), findsWidgets);
 
   // Navigating one Yearly period back still agrees with the ledger.
   await revealChart(tester, chartOf(StatsPeriod.yearly));
@@ -2088,7 +2107,7 @@ Future<void> journeyStatsAgreesWithLedger(
     reason: 'Daily spending agrees with the ledger',
   );
   expect(await totalOf(StatsPeriod.daily), 1250);
-  expect(find.text('12.50 USD · Budget spent'), findsOneWidget);
+  expect(find.text('12.50 USD · Budget spent'), findsWidgets);
 
   // Currency earning is its own measure, still ledger-exact.
   await tester.dragUntilVisible(
@@ -2138,7 +2157,7 @@ Future<void> journeyStatsAgreesWithLedger(
     reason: 'Weekly Coins agree with the ledger',
   );
   await revealChart(tester, find.text('12 Coins · Coins earned'));
-  expect(find.text('12 Coins · Coins earned'), findsOneWidget);
+  expect(find.text('12 Coins · Coins earned'), findsWidgets);
   expect(await readMismatches(tester, fixture), isEmpty);
   await endJourney(tester);
 }
