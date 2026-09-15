@@ -303,7 +303,16 @@ class CompletionNotificationsTest {
             context,
             Intent(Intent.ACTION_BOOT_COMPLETED),
         )
-        await("post-reboot notification", 20000) { notifications.hasNotification(completionA) }
+        // Await the durable delivery record together with the visible cue:
+        // NotificationManager.cancelAll from a previous test's teardown is a
+        // oneway binder call, so a stale active entry can satisfy a
+        // notification-only wait before this run's re-armed alarm has fired
+        // and recorded delivery, and a loaded runner can also delay the
+        // exact alarm well past the 2.5s deadline.
+        await("post-reboot notification and delivery record", 30000) {
+            notifications.hasNotification(completionA) &&
+                notifications.storedDelivered() == setOf(completionA)
+        }
         assertEquals(setOf(completionA), notifications.storedDelivered())
     }
 
