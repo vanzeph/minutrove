@@ -138,7 +138,9 @@ never a passed test.
 flutter test test/platform/ios_notification_scheduler_test.dart \
   test/platform/completion_notifier_test.dart
 bash tool/test_ios_chime.sh        # includes the native scheduling tests
-bash tool/integration_ios.sh       # real-channel sync + suppressed-sound flow
+bash tool/integration_ios.sh       # real-channel sync + suppressed-sound flow;
+                                   # also runs the native scheduling suite on
+                                   # every simulator leg (iOS 18.5 and 26.2)
 # Android, one emulator boot per API level (24/33/36):
 MINUTROVE_ANDROID_INSTRUMENTED=1 bash tool/integration_android.sh 33
 bash tool/test_android_chime.sh 36 # standalone instrumented entry point

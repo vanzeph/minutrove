@@ -35,7 +35,7 @@ another SDK directory. An existing SDK at that path must match the pin.
 | Android compile / target | API 36, from the pinned Flutter SDK |
 | Android NDK | 28.2.13676358, from the pinned Flutter SDK |
 | Android build tools | Temurin 17.0.20.1+1, SDK build tools 36.0.0, Gradle 9.3.1 (SHA-256 verified), AGP 9.1.0, Kotlin plugin 2.4.0 |
-| CI Apple tools | Xcode 16.4 / iOS SDK and simulator runtime 18.5 |
+| CI Apple tools | Xcode 16.4 / iOS SDK and simulator runtime 18.5 (pinned build leg); Xcode 26.3 / iOS 26.2 SDK and simulator runtime (integration matrix leg) |
 | iOS minimum | iOS 15.0 |
 
 Android development requires the Android SDK with platform 36 and the command
@@ -43,8 +43,10 @@ line tools. Set `ANDROID_HOME` or use `flutter config --android-sdk <path>`.
 Resolve any SDK license prompts interactively according to your environment.
 iOS development requires macOS, full Xcode, its command line tools selected with
 `xcode-select`, and an installed iOS simulator runtime. `flutter doctor -v`
-reports missing tools. CI selects Xcode 16.4 explicitly and fails if its expected
-iOS 18.5 SDK is absent. Host images receive updates independently; the actual
+reports missing tools. CI selects Xcode explicitly per job — 16.4 for the
+native builds and the pinned integration leg, 26.3 for the newest-OS
+integration leg — and fails if the expected iOS SDK or simulator runtime is
+absent. Host images receive updates independently; the actual
 runner image and OS versions are recorded with each build.
 
 Install the exact Android components with your licensed SDK setup:
@@ -116,11 +118,15 @@ development keys mean separate builds are not claimed to be byte-identical.
 [Native checks](https://github.com/vanzeph/minutrove/actions/workflows/native.yml)
 runs on pull requests, main, task branches and manual dispatch. Independent jobs
 check source quality, build both Android outputs, build both iOS outputs, and
-run integration tests on iPhone 16 / iOS 18.5 in an isolated standard
-`macos-15` runner. The iOS CI script builds before booting the simulator and
+run integration tests on the two legs of the iOS matrix — iPhone 16 / iOS 18.5
+under Xcode 16.4 and iPhone 17 / iOS 26.2 under Xcode 26.3, the pinned and the
+newest-OS runtimes the standard `macos-15` image provides. The iOS CI
+script builds before booting the simulator and
 uses Flutter's native XCTest driver to run the same Dart integration suite,
-requiring at least one result and success for every test. This avoids relying on
-a Flutter CLI debug-service connection. The existing reproducible audio-source check
+requiring at least one result and success for every test, then runs the native
+RunnerTests suite (durable clock, UserNotifications scheduling, one-shot chime)
+on the same booted device of each leg. This avoids relying
+on a Flutter CLI debug-service connection. The existing reproducible audio-source check
 and native Android/iOS one-shot sound tests also remain mandatory in these jobs.
 The Android emulator job runs the same Dart integration suite plus the native
 instrumented suites at three API levels — 24 (the supported Android 7.0
