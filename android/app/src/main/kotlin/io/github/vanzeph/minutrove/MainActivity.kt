@@ -9,6 +9,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private lateinit var backupFiles: BackupFiles
     private val notifications by lazy { CompletionNotifications(this) }
     private var pendingPermissionResult: MethodChannel.Result? = null
     private var pendingPermissionOperation: String? = null
@@ -33,6 +34,11 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        backupFiles = BackupFiles(this)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
+            BackupFiles.channelName).setMethodCallHandler { call, result ->
+            backupFiles.handle(call, result)
+        }
         val clock = DurableClock(this)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger,
             "io.github.vanzeph.minutrove/clock").setMethodCallHandler { call, result ->
@@ -209,5 +215,12 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val REQUEST_NOTIFICATIONS = 4101
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (::backupFiles.isInitialized) {
+            backupFiles.onActivityResult(requestCode, resultCode, data)
+        }
     }
 }

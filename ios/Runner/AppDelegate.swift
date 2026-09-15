@@ -4,6 +4,9 @@ import UserNotifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+  private let notifications = SessionNotifications()
+  private let backupFiles = BackupFiles()
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -17,10 +20,25 @@ import UserNotifications
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
-    if notification.request.identifier.hasPrefix(CompletionChime.identifierPrefix) {
-      completionHandler([.sound])
+    if let options = notifications.presentOptions(for: notification) {
+      completionHandler(options)
     } else {
       super.userNotificationCenter(center, willPresent: notification, withCompletionHandler: completionHandler)
+    }
+  }
+
+  override func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    let identifier = response.notification.request.identifier
+    if identifier.hasPrefix(CompletionChime.identifierPrefix) {
+      // The system removed the tapped notification; route the settled result.
+      notifications.handleTap(identifier: identifier)
+      completionHandler()
+    } else {
+      super.userNotificationCenter(center, didReceive: response, withCompletionHandler: completionHandler)
     }
   }
 
@@ -48,6 +66,67 @@ import UserNotifications
         return
       }
       CompletionChime.playOnce(completionId: id, result: result)
+    }
+    let notificationChannel = FlutterMethodChannel(name: SessionNotifications.channelName,
+                                                   binaryMessenger: registrar.messenger())
+    notificationChannel.setMethodCallHandler { [weak self] call, result in
+      guard let self else { result(FlutterMethodNotImplemented); return }
+      self.handleNotificationCall(call, on: notificationChannel, result: result)
+    }
+    let filesChannel = FlutterMethodChannel(name: BackupFiles.channelName,
+                                            binaryMessenger: registrar.messenger())
+    filesChannel.setMethodCallHandler { [weak self] call, result in
+      guard let self else { result(FlutterMethodNotImplemented); return }
+      self.handleBackupFilesCall(call, result: result)
+    }
+  }
+
+  private func handleBackupFilesCall(_ call: FlutterMethodCall,
+                                     result: @escaping FlutterResult) {
+    let arguments = call.arguments as? [String: Any]
+    switch call.method {
+    case "pickBackup":
+      backupFiles.pickBackup(result: result)
+    case "shareBackup":
+      guard let fileName = arguments?["fileName"] as? String,
+            let bytes = arguments?["bytes"] as? FlutterStandardTypedData else {
+        result(FlutterError(code: "invalid_share_request",
+                            message: "A file name and bytes are required", details: nil))
+        return
+      }
+      backupFiles.shareBackup(fileName: fileName, bytes: bytes, result: result)
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func handleNotificationCall(_ call: FlutterMethodCall,
+                                      on channel: FlutterMethodChannel,
+                                      result: @escaping FlutterResult) {
+    let arguments = call.arguments as? [String: Any]
+    switch call.method {
+    case "permission":
+      notifications.permission(result: result)
+    case "requestPermission":
+      notifications.requestPermission(result: result)
+    case "syncRequests":
+      guard let desired = arguments?["desired"] as? [[String: Any]] else {
+        result(FlutterError(code: "invalid_sync_request",
+                            message: "Expected desired notifications", details: nil))
+        return
+      }
+      notifications.syncRequests(desired: desired, result: result)
+    case "openSettings":
+      notifications.openSettings(result: result)
+    case "activateTapForwarding":
+      notifications.activateTapForwarding { completionId in
+        DispatchQueue.main.async {
+          channel.invokeMethod("onNotificationTap", arguments: ["completionId": completionId])
+        }
+      }
+      result(nil)
+    default:
+      result(FlutterMethodNotImplemented)
     }
   }
 }
