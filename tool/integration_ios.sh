@@ -14,9 +14,14 @@ device=$(xcrun simctl create Minutrove-Integration com.apple.CoreSimulator.SimDe
 trap 'xcrun simctl shutdown "$device"; xcrun simctl delete "$device"' EXIT
 xcrun simctl boot "$device"
 xcrun simctl bootstatus "$device" -b
+# The whole Dart integration suite runs inside one XCTest case, so the
+# execution allowance must bound the full suite, not one Dart test. The
+# product journeys alone need ~3.5 minutes on the simulator; 600 seconds
+# still fails fast on a genuine hang while staying inside the job's
+# 20-minute step timeout.
 xcodebuild test-without-building -project ios/Runner.xcodeproj -scheme Runner \
   -configuration Debug -derivedDataPath "$output" \
   -destination "platform=iOS Simulator,id=$device" \
   -only-testing:RunnerTests/IntegrationTests -parallel-testing-enabled NO \
   -destination-timeout 120 -test-timeouts-enabled YES \
-  -maximum-test-execution-time-allowance 120 CODE_SIGNING_ALLOWED=NO
+  -maximum-test-execution-time-allowance 600 CODE_SIGNING_ALLOWED=NO

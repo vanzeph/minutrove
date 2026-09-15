@@ -308,6 +308,18 @@ final class AppComposition with WidgetsBindingObserver {
   late final StatsSource statsSource = SqliteStatsSource(
     store: store,
     calendar: calendar,
+    // The reporting date follows the same injected clock as every command,
+    // never a second uncoordinated wall-clock source. The mapping stays
+    // synchronous for synchronous clocks: this stats reader runs inside the
+    // store's serialized watch-refresh chain on every commit, and one extra
+    // microtask hop there deadlocks the runAsync-driven widget suites on a
+    // fake zone.
+    utcNow: () {
+      final reading = clock.now();
+      return reading is Future<ClockReading>
+          ? reading.then((value) => value.utc)
+          : reading.utc;
+    },
   );
   late final BackupRepository backup = SqliteBackupRepository(
     restorer: restorer,
