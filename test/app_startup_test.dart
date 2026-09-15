@@ -11,7 +11,7 @@ import 'package:minutrove/features/home/home.dart';
 import 'package:minutrove/features/items/items.dart';
 import 'package:minutrove/platform/audio/completion_chime.dart';
 import 'package:minutrove/platform/notifications/notification_taps.dart';
-import 'package:minutrove/ui/core/core.dart' show TroveDialog;
+import 'package:minutrove/ui/core/core.dart' show TroveButton, TroveDialog;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'features/home_shell_test.dart' show flush, launcher, settle;
@@ -246,12 +246,26 @@ Future<void> launchItem(WidgetTester tester, String name) async {
   );
 }
 
+/// Session actions recover and re-read before commanding; on a slow host the
+/// button can still be disabled right after opening the screen. Wait for an
+/// enabled button, exactly like the native integration suite does.
+Future<void> tapWhenEnabled(WidgetTester tester, String label) async {
+  await waitUntil(
+    tester,
+    () => tester
+        .widgetList<TroveButton>(find.widgetWithText(TroveButton, label))
+        .any((button) => button.onPressed != null),
+    'The "$label" action is enabled',
+  );
+  await tapText(tester, label);
+}
+
 Future<void> waitUntil(
   WidgetTester tester,
   bool Function() ready,
   String reason,
 ) async {
-  for (var attempt = 0; attempt < 100 && !ready(); attempt++) {
+  for (var attempt = 0; attempt < 240 && !ready(); attempt++) {
     await flush(tester);
     await tester.pump(const Duration(milliseconds: 50));
   }
@@ -304,7 +318,7 @@ void main() {
       expect(find.text('Quest session'), findsOneWidget);
       fixture.clock.advance(4000);
       await settle(tester);
-      await tapText(tester, 'End & keep earnings');
+      await tapWhenEnabled(tester, 'End & keep earnings');
       await waitUntil(
         tester,
         () => find.text('Quest session').evaluate().isEmpty,
@@ -345,7 +359,7 @@ void main() {
       await settle(tester);
       fixture.clock.advance(3000);
       await settle(tester);
-      await tapText(tester, 'End & keep remaining time');
+      await tapWhenEnabled(tester, 'End & keep remaining time');
       await waitUntil(
         tester,
         () => find.text('Reward session').evaluate().isEmpty,
