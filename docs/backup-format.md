@@ -18,6 +18,47 @@ The operation ID is a caller correlation value for this read, not a durable
 mutation ID. Retrying reads current data; unchanged data and date yield identical
 bytes. The returned `BackupFile` is immutable.
 
+## Restore
+
+`SqliteBackupRestorer.open(...)` owns the live database file and exposes
+`inspectBackup` and `restoreBackup`; `SqliteBackupRepository` composes that with
+the exporter into the `BackupRepository` port. Repositories built on
+`restorer.store` must be rebuilt from the same getter after a successful
+restore, because the adapter swaps and reopens the underlying database.
+
+Inspection decodes the envelope, matches the pinned currency-metadata version,
+upgrades older supported source schemas through the explicit converter chain in
+`backup_converters.dart` (newer sources are `UnsupportedBackupVersion`), decodes
+every record back through the inverse portable mapping, and rejects duplicate
+keys, dangling relationships, an item pointer that is not its latest revision,
+or economic disagreement. It then materializes the whole snapshot into a
+temporary database next to the live file, re-checking schema constraints,
+uniqueness and ledger/projection agreement before deleting the temporary files.
+Inspection never touches live data and creates no operation row.
+
+Restore is a durable command. Its operation ID, whole-file digest and confirmed
+settings revision form the request fingerprint: replaying the same ID with the
+same file returns the original `RestoreReceipt` without another swap, while the
+same ID with a different file or confirmation is conflicting reuse. The
+confirmation must match the inspected digest, source date, version and record
+counts, and the live settings revision the user saw; otherwise the restore is
+rejected before any file is touched. The receipt operation row is committed
+inside the temporary database, so it survives the swap.
+
+Replacement happens only after validation: the live store is closed, the
+original file is copied to a retained `*.restore-safety` copy and verified with
+SQLite integrity and foreign-key checks, the validated temporary database is
+renamed atomically over the live path, and the database is reopened before the
+restore is acknowledged. A failure before the rename leaves the original file
+untouched; a failure reopening the replaced file restores the safety copy before
+surfacing the error. Because imported snapshots contain no active session, the
+slot is empty afterwards and the scheduler is reconciled with the empty intent
+list to cancel stale OS notifications; a scheduling failure cannot roll back the
+committed replacement and is retried by the ordinary lifecycle reconciliation.
+Restoring replaces current data exactly as confirmed — including a live running
+session — and repeated restores reproduce the same product state without
+restarting a timer or paying any bonus again.
+
 ## Envelope and integrity
 
 The object has exactly `format`, `version`, `payload`, and `integrity` fields:
@@ -122,10 +163,11 @@ and checks the field allowlist and exact numeric syntax. Newer versions return
 errors never include file content. All these paths retain original data.
 
 Decoding is **not restore approval or full semantic validation**. The restore
-adapter must additionally validate supported currency metadata, value ranges,
+adapter additionally validates supported currency metadata, value ranges,
 record types in each relationship, uniqueness, dates, revisions and economic
-invariants in a temporary database. It must bind explicit replacement confirmation
-to the whole-file digest, preserve a safety copy, replace atomically, cancel stale
-notifications and reopen successfully. Export provides no live-file replacement
-API. Native sharing, cross-device restore and interrupted replacement are separate
-acceptance gates; codec round-trip tests do not claim those passed.
+invariants in a temporary database. It binds explicit replacement confirmation
+to the whole-file digest, preserves a safety copy, replaces atomically, cancels
+stale notifications and reopens successfully, as described under **Restore**
+above. Export provides no live-file replacement API. Native sharing and
+cross-device restore are separate acceptance gates; codec round-trip tests do
+not claim those passed.

@@ -1,4 +1,5 @@
 import '../domain/domain.dart';
+import 'record_codec.dart';
 
 /// Frozen v1 product-record allowlist. Deliberately separate from RecordCodec:
 /// internal schema/result changes must not silently change a portable contract.
@@ -7,6 +8,27 @@ import '../domain/domain.dart';
 /// IDs, fingerprints, product results and wall-time history are preserved.
 final class BackupRecordCodec {
   const BackupRecordCodec();
+
+  /// Inverse of [toJson], used only by restore validation. Rebuilds typed
+  /// product records from portable JSON; value constructors re-check every
+  /// numeric range and identifier, surfacing violations as [InvalidBackup].
+  /// Anchors export deliberately dropped are reconstructed inertly: clock
+  /// endpoints gain a synthetic boot identity with zero monotonic time,
+  /// running historical snapshots regain their checkpoint deadline, and
+  /// session-mutation results regain a cancellation-only intent. Decoded
+  /// historical results are replay data, never slot rows to schedule from.
+  /// Pinned currency metadata must match the file exactly.
+  Object fromJson(Object? input, CurrencyMetadata currencies) {
+    try {
+      return _PortableDecoder(RecordCodec(currencies)).decode(input);
+    } on InvalidBackup {
+      rethrow;
+    } on DomainError {
+      throw const InvalidBackup('Record validation failed');
+    } on FormatException {
+      throw const InvalidBackup('Record validation failed');
+    }
+  }
 
   Map<String, Object?> toJson(Object value) => _numbers(switch (value) {
     Operation<Object> v => {
@@ -196,3 +218,279 @@ Map<String, Object?> _numbers(Map<String, Object?> record) => {
   for (final entry in record.entries)
     entry.key: entry.value is int ? '${entry.value}' : entry.value,
 };
+
+/// Synthetic boot identity shared by every reconstructed clock endpoint. The
+/// portable format deliberately omits device anchors; zero monotonic time and
+/// one shared identity keep intervals ordered without inventing device facts.
+const restoredClockBootId = 'restored-backup';
+
+/// Persisted commands paired with the portable result tag they must carry.
+/// `exportBackup` is a read and never persists an operation row; adding a new
+/// persisted kind requires extending this frozen contract and its fixtures.
+const operationResultTypes = <OperationKind, String>{
+  OperationKind.saveItem: 'item',
+  OperationKind.archiveItem: 'item',
+  OperationKind.saveGroup: 'group',
+  OperationKind.removeGroup: 'items',
+  OperationKind.startSession: 'sessionMutation',
+  OperationKind.pauseSession: 'sessionMutation',
+  OperationKind.resumeSession: 'sessionMutation',
+  OperationKind.endSession: 'sessionMutation',
+  OperationKind.reconcileSession: 'sessionMutation',
+  OperationKind.redeemAward: 'economy',
+  OperationKind.recordExpense: 'economy',
+  OperationKind.saveSettings: 'settings',
+  OperationKind.restoreBackup: 'restoreReceipt',
+};
+
+final class _PortableDecoder {
+  _PortableDecoder(this.codec);
+  final RecordCodec codec;
+
+  Object decode(Object? input) {
+    final m = _record(input);
+    return switch (m['type']) {
+      'item' => Item(
+        id: ItemId(_text(m['id'])),
+        revision: Revision(_integer(m['revision'])),
+        name: _text(m['name']),
+        iconKey: _text(m['icon']),
+        colorArgb: _integer(m['color']),
+        groupId: m['group'] == null ? null : GroupId(_text(m['group'])),
+        order: _integer(m['order']),
+        archived: _bool(m['archived']),
+        configuration: _required<ItemConfiguration>(m, 'config'),
+      ),
+      'quest' => QuestConfiguration(
+        duration: Milliseconds(_integer(m['duration'])),
+        ratesPerHour: _required(m, 'rates'),
+        dailyGoal: _optional(m, 'goal'),
+      ),
+      'award' => AwardConfiguration(
+        packName: _text(m['pack']),
+        quantityStep: _integer(m['step']),
+        price: _required(m, 'price'),
+        timeGrant: m['time'] == null ? null : Milliseconds(_integer(m['time'])),
+        budgetGrant: _optional(m, 'budget'),
+      ),
+      'amounts' => CurrencyAmounts(
+        coins: MicroAmount(_integer(m['coins'])),
+        gems: MicroAmount(_integer(m['gems'])),
+      ),
+      'budget' => BudgetAmount(
+        _currency(_text(m['currency']), _integer(m['digits'])),
+        _integer(m['minor']),
+      ),
+      'goal' => DailyGoal(
+        target: Milliseconds(_integer(m['target'])),
+        bonus: _required(m, 'bonus'),
+      ),
+      'group' => Group(
+        id: GroupId(_text(m['id'])),
+        revision: Revision(_integer(m['revision'])),
+        name: _text(m['name']),
+        order: _integer(m['order']),
+      ),
+      'event' => EventTime(
+        utc: RecordCodec.utc(_integer(m['utc'])),
+        day: _day(_text(m['day'])),
+        zone: ReportingZone(_text(m['zone'])),
+        offsetSeconds: _integer(m['offset']),
+      ),
+      'instant' => ClockReading(
+        utc: RecordCodec.utc(_integer(m['utc'])),
+        bootId: restoredClockBootId,
+        monotonic: Milliseconds(0),
+      ),
+      'itemRevision' => ItemRevision(
+        snapshot: _required(m, 'item'),
+        recordedAt: _required(m, 'at'),
+      ),
+      'interval' => ActiveInterval(
+        startedAt: _required(m, 'start'),
+        endedAt: _required(m, 'end'),
+        active: Milliseconds(_integer(m['active'])),
+        assignment: _required(m, 'at'),
+      ),
+      'session' => _session(m),
+      'ledger' => LedgerEntry(
+        id: LedgerId(_text(m['id'])),
+        operationId: OperationId(_text(m['operation'])),
+        itemId: ItemId(_text(m['item'])),
+        itemRevision: Revision(_integer(m['revision'])),
+        sessionId: m['session'] == null ? null : SessionId(_text(m['session'])),
+        timestamp: _required(m, 'at'),
+        dimension: _required(m, 'dimension'),
+        delta: _integer(m['delta']),
+      ),
+      'virtualDimension' => VirtualCurrencyDimension(
+        VirtualCurrency.values.asNameMap()[_text(m['currency'])] ??
+            (throw _invalid()),
+      ),
+      'timeDimension' => const TimeDimension(),
+      'budgetDimension' => BudgetDimension(
+        _currency(_text(m['currency']), _integer(m['digits'])),
+      ),
+      'wallet' => WalletProjection(
+        revision: Revision(_integer(m['revision'])),
+        balances: _required(m, 'balances'),
+      ),
+      'balance' => AwardBalance(
+        awardId: ItemId(_text(m['id'])),
+        revision: Revision(_integer(m['revision'])),
+        time: m['time'] == null ? null : Milliseconds(_integer(m['time'])),
+        budget: _optional(m, 'budget'),
+      ),
+      'remainder' => QuestAccrualRemainder(
+        questId: ItemId(_text(m['id'])),
+        currency:
+            VirtualCurrency.values.asNameMap()[_text(m['currency'])] ??
+            (throw _invalid()),
+        remainder: AccrualRemainder(_integer(m['value'])),
+      ),
+      'goalRevision' => DailyGoalRevision(
+        questId: ItemId(_text(m['id'])),
+        revision: Revision(_integer(m['revision'])),
+        effectiveFrom: _day(_text(m['day'])),
+        zone: ReportingZone(_text(m['zone'])),
+        goal: _optional(m, 'goal'),
+      ),
+      'achievement' => DailyAchievement(
+        questId: ItemId(_text(m['id'])),
+        day: _day(_text(m['day'])),
+        goalRevision: Revision(_integer(m['revision'])),
+        operationId: OperationId(_text(m['operation'])),
+        awardedAt: _required(m, 'at'),
+        bonus: _required(m, 'bonus'),
+      ),
+      'settings' => AppSettings(
+        revision: Revision(_integer(m['revision'])),
+        reportingZone: ReportingZone(_text(m['zone'])),
+      ),
+      'schema' => SchemaVersion(_integer(m['value'])),
+      'economy' => EconomicState(
+        operationId: OperationId(_text(m['operation'])),
+        wallet: _required(m, 'wallet'),
+        awards: _list(m, 'awards'),
+        activeSession: _optional(m, 'session'),
+        entries: _list(m, 'entries'),
+        achievements: _list(m, 'achievements'),
+      ),
+      'sessionMutation' => () {
+        final session = _required<Session>(m, 'session');
+        return SessionMutation(
+          session: session,
+          economy: _required(m, 'economy'),
+          // Cancellation-only reconstruction; export omits the live intent.
+          notificationIntent: NotificationIntent(
+            sessionId: session.id,
+            sessionRevision: session.revision,
+            completionId: session.completionId,
+            deadlineUtc: session.deadlineUtc,
+            completionChimeHandled: false,
+          ),
+        );
+      }(),
+      'restoreReceipt' => RestoreReceipt(
+        operationId: OperationId(_text(m['operation'])),
+        sourceSha256: _text(m['sha256']),
+        schemaVersion: _required(m, 'schema'),
+        settings: _required(m, 'settings'),
+      ),
+      'items' => List<Item>.unmodifiable(_list(m, 'items')),
+      'bool' => _bool(m['value']),
+      'operation' => _operation(m),
+      _ => throw _invalid(),
+    };
+  }
+
+  Session _session(Map<String, Object?> m) {
+    final status =
+        SessionStatus.values.asNameMap()[_text(m['status'])] ??
+        (throw _invalid());
+    final duration = Milliseconds(_integer(m['duration']));
+    final settled = Milliseconds(_integer(m['settled']));
+    final checkpoint = _required<ClockReading>(m, 'checkpoint');
+    // A running historical snapshot regains the deadline implied by its own
+    // checkpoint and remaining time; terminal snapshots never carry one.
+    return Session(
+      id: SessionId(_text(m['id'])),
+      revision: Revision(_integer(m['revision'])),
+      itemSnapshot: _required(m, 'item'),
+      status: status,
+      zone: ReportingZone(_text(m['zone'])),
+      startedAt: _required(m, 'start'),
+      checkpoint: checkpoint,
+      duration: duration,
+      settled: settled,
+      deadlineUtc: status == SessionStatus.running
+          ? sessionDeadline(checkpoint.utc, duration - settled)
+          : null,
+      completionId: CompletionId(_text(m['completion'])),
+      intervals: _list(m, 'intervals'),
+    );
+  }
+
+  Operation<Object> _operation(Map<String, Object?> m) {
+    final kind = OperationKind.values.asNameMap()[_text(m['kind'])];
+    final expected = kind == null ? null : operationResultTypes[kind];
+    if (expected == null) throw _invalid();
+    final result = _record(m['result']);
+    if (result['type'] != expected) throw _invalid();
+    final fingerprint = _text(m['fingerprint']);
+    if (fingerprint.isEmpty) throw _invalid();
+    return Operation<Object>(
+      id: OperationId(_text(m['id'])),
+      kind: kind!,
+      committedAt: _required(m, 'at'),
+      requestFingerprint: fingerprint,
+      committedResult: decode(result),
+    );
+  }
+
+  BudgetCurrency _currency(String code, int digits) {
+    try {
+      return codec.currency(code, digits);
+    } on FormatException {
+      throw _invalid();
+    }
+  }
+
+  Never _invalid() => throw const InvalidBackup('Unsupported portable record');
+
+  String _text(Object? value) {
+    if (value is! String) throw _invalid();
+    return value;
+  }
+
+  bool _bool(Object? value) {
+    if (value is! bool) throw _invalid();
+    return value;
+  }
+
+  int _integer(Object? value) {
+    if (value is! String) throw _invalid();
+    return int.tryParse(value) ?? (throw _invalid());
+  }
+
+  Map<String, Object?> _record(Object? value) {
+    if (value is! Map) throw _invalid();
+    return Map<String, Object?>.from(value);
+  }
+
+  DayKey _day(String value) {
+    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value)) throw _invalid();
+    return RecordCodec.parseDay(value);
+  }
+
+  T _required<T extends Object>(Map<String, Object?> m, String key) =>
+      decode(m[key]) as T;
+
+  T? _optional<T extends Object>(Map<String, Object?> m, String key) =>
+      m[key] == null ? null : decode(m[key]) as T;
+
+  List<T> _list<T extends Object>(Map<String, Object?> m, String key) =>
+      (m[key] as List? ?? (throw _invalid()))
+          .map((value) => decode(value) as T)
+          .toList();
+}

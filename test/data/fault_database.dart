@@ -25,15 +25,21 @@ Future<String> dump(String path) async {
 }
 
 /// Real SQLite is used for every statement. Inject only the transport failure
-/// after a write, before COMMIT (-1), or after a durable COMMIT (-2).
+/// after a write, before COMMIT (-1), or after a durable COMMIT (-2). A
+/// one-shot [FaultFactory.arm]'s `openFailure` interrupts a chosen
+/// openDatabase call, simulating an interrupted replacement recovery path.
 class FaultFactory implements DatabaseFactory {
   bool armed = false;
   int writes = 0;
   int? failure;
-  void arm({int? failure}) {
+  int opens = 0;
+  int? openFailure;
+  void arm({int? failure, int? openFailure}) {
     armed = true;
     writes = 0;
+    opens = 0;
     this.failure = failure;
+    this.openFailure = openFailure;
   }
 
   void disarm() {
@@ -41,7 +47,9 @@ class FaultFactory implements DatabaseFactory {
   }
 
   void hit() {
-    if (armed && ++writes == failure) {
+    if (!armed) return;
+    ++writes;
+    if (failure != null && writes == failure) {
       throw const StorageUnavailable(retryable: true);
     }
   }
@@ -50,10 +58,17 @@ class FaultFactory implements DatabaseFactory {
   Future<Database> openDatabase(
     String path, {
     OpenDatabaseOptions? options,
-  }) async => FaultDatabase(
-    await databaseFactoryFfi.openDatabase(path, options: options),
-    this,
-  );
+  }) async {
+    if (armed && openFailure != null && ++opens == openFailure) {
+      openFailure = null;
+      throw const StorageUnavailable(retryable: true);
+    }
+    return FaultDatabase(
+      await databaseFactoryFfi.openDatabase(path, options: options),
+      this,
+    );
+  }
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -82,6 +97,14 @@ class FaultDatabase implements Database {
 
   @override
   Future<void> close() => inner.close();
+
+  /// Read-only statements (integrity/foreign-key verification) pass through.
+  @override
+  Future<List<Map<String, Object?>>> rawQuery(
+    String sql, [
+    List<Object?>? arguments,
+  ]) => inner.rawQuery(sql, arguments);
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
