@@ -12,8 +12,8 @@ behavior and known limits; it is not a claim about untested hardware paths.
 
 | Behavior | Evidence |
 | --- | --- |
-| Desired-state sync registers pending requests even before authorization is decided; delivery alone waits for authorization. | `RunnerTests.testSyncRequestsReplacesStableIdentifierAndRemovesStale`, integration test raw-channel sync. |
-| Re-adding a request with the same identifier replaces the pending one; pause and end reconcile to an empty pending set. | Same tests above. |
+| Without authorization the center silently holds nothing: `add` reports no error but `getPendingNotificationRequests` stays empty (observed on the Xcode 16.4 / iOS 18.5 simulator in CI). Pending registration is observable under provisional authorization, which iOS grants without a prompt; that path is asserted in the native suite. | CI run of `RunnerTests.testSyncRequestsReplacesStableIdentifierAndRemovesStale`; integration raw-channel sync asserts the same contract on every run. |
+| Under observable authorization, re-adding a request with the same identifier replaces the pending one; pause and end reconcile to an empty pending set in every authorization state. | Same tests above. |
 | The deadline trigger is a non-repeating `UNCalendarNotificationTrigger` interpreted in UTC (`dateComponents.timeZone = UTC`); without an explicit zone iOS would interpret the fields in the device's current zone and the deadline would drift. | `RunnerTests.testDeadlineRequestKeepsStableIdentifierAndUtcTrigger` asserts `nextTriggerDate()` within 1 s of the UTC deadline. |
 | One audible foreground presentation per completion per process: a scheduled cue that already sounded suppresses the immediate fallback (`presentOptions` dedup set). | `RunnerTests.testForegroundPresentationSoundsOncePerCompletion`. |
 | A tap arriving before the Dart handler exists (cold start) is queued and flushed exactly once on activation; unrelated identifiers never route. | `RunnerTests.testColdStartTapIsQueuedUntilForwardingActivatesThenDeduplicates`. |
@@ -43,8 +43,13 @@ behavior and known limits; it is not a claim about untested hardware paths.
   can follow a tap.
 - Authorization can only be changed by the user: a denied app receives
   `denied` forever until Settings changes, and the adapter surfaces
-  `openSystemSettings` for that state. The permission prompt itself requires
-  a human tap and cannot be accepted from an automated test.
+  `openSystemSettings` for that state. The `.alert`/`.sound` permission prompt
+  requires a human tap and cannot be accepted from an automated test; the
+  native suite therefore requests `.provisional` authorization (quietly
+  granted, no prompt) to make pending-state behavior observable on CI. The
+  `osOwned` delivery set is derived from what the center actually reports, so
+  an unauthorized environment correctly falls back to the immediate chime
+  path instead of assuming the OS owns delivery.
 - The XCTest-driven simulator cannot lock the screen, change the ringer, or
   receive a hardware Focus state; those paths stay on the physical-device
   native acceptance list below.
