@@ -252,7 +252,7 @@ provides the purchase and read methods of `EconomyRepository`. Compose it with t
 same live store as item/session commands; the complete economy adapter delegates
 `watchWallet`, `watchAwards`, `previewAward`, and `redeemAward` to it and supplies
 expense/session settlement separately. No schema or domain port changes are
-required. Ledger IDs default to random UUIDs; tests may inject a UUID factory.
+required. Ledger IDs derive deterministically from the operation ID and posting ordinal (as session and expense identities do), so replaying a committed operation never allocates new IDs and identical committed history exports identical portable backup bytes on every platform.
 
 `previewAward` reads the current item, wallet and pooled allowance in one snapshot.
 Its quote contains the item revision, exact joint price, grants, remaining wallet,

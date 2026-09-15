@@ -125,3 +125,33 @@ jobs:
           flutter precache --ios
           bash tool/integration_ios.sh
           echo 'Dart integration tests passed through XCTest on iPhone 16 / iOS 18.5. Physical-device acceptance remains separate.' >> "$GITHUB_STEP_SUMMARY"
+
+  integration-android:
+    name: Android emulator integration
+    # The same Dart suite runs against the app's real on-device SQLite via the
+    # platform sqflite channel; combined with the iOS job it proves backup
+    # export/restore portability in both directions.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install JDK
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06c6c3 # v4
+        with:
+          distribution: temurin
+          # Adoptium's SemVer selector for JDK 17.0.20.1+1.
+          java-version: '17.0.20+101'
+      - name: Install pinned Flutter and Android components
+        run: |
+          bash tool/install_flutter.sh "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0' 'system-images;android-33;google_apis;x86_64'
+      - name: Enable emulator acceleration
+        run: sudo chmod 666 /dev/kvm
+      - name: Run native integration tests on the emulator
+        timeout-minutes: 25
+        run: |
+          bash tool/integration_android.sh
+          echo 'Dart integration tests passed on Android 13 (API 33) x86_64 emulator. Physical-device acceptance remains separate.' >> "$GITHUB_STEP_SUMMARY"

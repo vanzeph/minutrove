@@ -1,4 +1,6 @@
-import 'dart:math';
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 
 import '../domain/domain.dart';
 import 'command_coordinator.dart';
@@ -12,15 +14,12 @@ final class SqliteAwardRedemptionRepository {
     required this.store,
     required this.clock,
     required this.calendar,
-    LedgerId Function()? newLedgerId,
-  }) : _commands = CommandCoordinator(store),
-       _newLedgerId = newLedgerId ?? _randomLedgerId;
+  }) : _commands = CommandCoordinator(store);
 
   final SqliteStore store;
   final Clock clock;
   final ReportingCalendar calendar;
   final CommandCoordinator _commands;
-  final LedgerId Function() _newLedgerId;
 
   Stream<WalletProjection> watchWallet() => store.watch((r) => r.wallet());
 
@@ -81,11 +80,12 @@ final class SqliteAwardRedemptionRepository {
           Failure<RedemptionPreview>(:final error) => throw error,
         };
         final entries = <LedgerEntry>[];
+        var ordinal = 0;
         void add(LedgerDimension dimension, int delta) {
           if (delta == 0) return;
           entries.add(
             LedgerEntry(
-              id: _newLedgerId(),
+              id: _ledgerId(operationId, ordinal++),
               operationId: operationId,
               itemId: item.id,
               itemRevision: item.revision,
@@ -151,14 +151,15 @@ Future<Result<RedemptionPreview>> _preview(
   return Success(preview);
 }
 
-LedgerId _randomLedgerId() {
-  final random = Random.secure();
-  final bytes = List.generate(16, (_) => random.nextInt(256));
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  final hex = bytes.map((v) => v.toRadixString(16).padLeft(2, '0')).join();
+/// Deterministic per operation and posting ordinal, mirroring session ledger
+/// identity: replaying a committed operation never allocates new IDs, so the
+/// same committed history exports identical portable bytes on every platform.
+LedgerId _ledgerId(OperationId operation, int ordinal) {
+  final hex = sha256
+      .convert(utf8.encode('redemption-ledger-v1:${operation.value}:$ordinal'))
+      .toString();
   return LedgerId(
     '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
-    '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}',
+    '8${hex.substring(13, 16)}-a${hex.substring(17, 20)}-${hex.substring(20, 32)}',
   );
 }
