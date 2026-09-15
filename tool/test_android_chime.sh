@@ -26,15 +26,36 @@ done
 [[ "$("$SDK_ROOT/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r')" == 1 ]] || { echo 'Emulator boot timed out'; exit 1; }
 # boot_completed alone can precede credential-encrypted storage availability;
 # runtime permission grants and notification posts fail while user 0 is locked.
-# Headless google_apis images rest on a non-secure keyguard, so dismiss it and
-# wait for the user to actually unlock.
-"$SDK_ROOT/platform-tools/adb" shell wm dismiss-keyguard || true
-"$SDK_ROOT/platform-tools/adb" shell input keyevent 82 || true
+# Try every headless unlock technique, then wait for either the unlock
+# property or the user manager reporting the running user as unlocked.
+ADB="$SDK_ROOT/platform-tools/adb"
+user_unlocked() {
+  [[ "$("$ADB" shell getprop sys.user.0.unlock_completed | tr -d '\r')" == 1 ]] && return 0
+  "$ADB" shell dumpsys user 2>/dev/null | tr -d '\r' | \
+    grep -q 'UserInfo{0:.*running, unlocked' && return 0
+  return 1
+}
+"$ADB" wait-for-device
+"$ADB" root >/dev/null 2>&1 || true
+"$ADB" shell cmd lock_settings set-disabled --user 0 true >/dev/null 2>&1 || true
+"$ADB" shell wm dismiss-keyguard >/dev/null 2>&1 || true
+"$ADB" shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
+"$ADB" shell input keyevent 82 >/dev/null 2>&1 || true
+"$ADB" shell input swipe 360 1000 360 200 >/dev/null 2>&1 || true
+"$ADB" shell wm dismiss-keyguard >/dev/null 2>&1 || true
 for attempt in $(seq 1 60); do
-  if [[ "$("$SDK_ROOT/platform-tools/adb" shell getprop sys.user.0.unlock_completed | tr -d '\r')" == 1 ]]; then break; fi
+  if user_unlocked; then break; fi
+  "$ADB" shell input keyevent 82 >/dev/null 2>&1 || true
+  "$ADB" shell input swipe 360 1000 360 200 >/dev/null 2>&1 || true
   sleep 2
 done
-[[ "$("$SDK_ROOT/platform-tools/adb" shell getprop sys.user.0.unlock_completed | tr -d '\r')" == 1 ]] || { echo 'Emulator user unlock timed out'; exit 1; }
+if ! user_unlocked; then
+  echo 'Emulator user unlock timed out; diagnostics:'
+  "$ADB" shell getprop | tr -d '\r' | grep -iE 'unlock|boot_completed' || true
+  "$ADB" shell dumpsys user | tr -d '\r' | grep -iE 'UserInfo|state' | head -20 || true
+  "$ADB" shell dumpsys window | tr -d '\r' | grep -iE 'mDreamingLockscreen|mShowingLockscreen|KeyguardShowing' | head -5 || true
+  exit 1
+fi
 "$SDK_ROOT/platform-tools/adb" shell getprop ro.build.version.release
 # A user-launched app sits in the active standby bucket; keep alarm delivery
 # expectations aligned with that real-world state on the headless emulator,
