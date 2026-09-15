@@ -45,6 +45,7 @@ class HomeShell extends StatefulWidget {
     required this.sessions,
     required this.clock,
     required this.routes,
+    this.routeHome,
   });
   final Stream<HomeData> Function() watchHome;
   final ItemEditing editing;
@@ -52,12 +53,18 @@ class HomeShell extends StatefulWidget {
   final Clock clock;
   final HomeRoutes routes;
 
+  /// External Home-routing signals, such as completion notification taps.
+  /// Each event selects the Home tab; the settled-result banner arrives from
+  /// the same committed read model as every other wallet or slot change.
+  final Stream<void>? routeHome;
+
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
 
 class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   StreamSubscription<HomeData>? _subscription;
+  StreamSubscription<void>? _routeHomeSubscription;
   HomeData? _data;
   bool _loadFailed = false;
   bool _routing = false;
@@ -74,15 +81,27 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _listenRouteHome();
     _listen();
   }
 
   @override
   void didUpdateWidget(HomeShell oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.routeHome != widget.routeHome) _listenRouteHome();
     if (oldWidget.watchHome != widget.watchHome ||
         oldWidget.sessions != widget.sessions) {
       _listen();
+    }
+  }
+
+  void _listenRouteHome() {
+    _routeHomeSubscription?.cancel();
+    final stream = widget.routeHome;
+    if (stream != null) {
+      _routeHomeSubscription = stream.listen((_) {
+        if (mounted) _select(0);
+      });
     }
   }
 
@@ -132,6 +151,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _streamEpoch++;
     _subscription?.cancel();
+    _routeHomeSubscription?.cancel();
     super.dispose();
   }
 

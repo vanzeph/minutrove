@@ -3,9 +3,11 @@
 Turn focused effort into time and budget for activities you value.
 
 Minutrove is a local quest-and-award app for iOS and Android, built with one
-Flutter package. The current foundation runs a synthetic Home, Shop, and Stats
-preview. Quests, accounting, persistence, and native integrations are upcoming
-features; the preview does not create activity or balances.
+Flutter package. The app opens one local SQLite store, runs first-run
+onboarding, and connects the complete loop: create Quests and Awards, earn
+Coins and Gems from active session time, redeem packs into a pooled allowance,
+partially consume time and budget, inspect unit-safe statistics, and export or
+restore a validated backup. Everything stays on the device.
 
 ## Development setup
 
@@ -144,8 +146,9 @@ Product data will remain local, with manual file backup and restore.
 
 The live [Home/navigation feature](lib/features/home/README.md) composes the
 shared repositories and feature routes; its [synthetic UI evidence](docs/ui-evidence/home/README.md)
-covers mixed groups, accessible configuration and the persistent timer. Native
-startup and the remaining feature screens supply the app-level dependencies.
+covers mixed groups, accessible configuration and the persistent timer.
+[App startup](lib/app_startup.dart) composes the real adapters, routes
+notification taps, recovers sessions, and rebuilds the graph after a restore.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution workflow.
 

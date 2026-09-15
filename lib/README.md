@@ -1,7 +1,10 @@
 # Application boundaries
 
-`main.dart` starts `MinutroveApp`; `ui/core/app_shell.dart` provides the synthetic
-Home, Shop, and Stats smoke surface. It does not start sessions or change balances.
+`main.dart` starts `MinutroveStartup` (in `app_startup.dart`), which opens the
+local store, wires the real clock, notification, chime, and backup adapters,
+recovers the persisted session, gates first-run onboarding, and builds the
+`HomeShell` route graph. A validated restore rebuilds the whole graph over the
+reopened database.
 
 - `domain/`: pure Dart entities, commands, and ports; no Flutter widgets,
   database plugins, or OS dependencies.

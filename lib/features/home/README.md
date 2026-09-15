@@ -1,9 +1,9 @@
 # Home and navigation composition
 
 `HomeShell` is the live Home feature and shared Home/Shop/Stats navigation shell.
-Pass it as `MinutroveApp(home: homeShell)` from the native composition root.
-The parameterless app retains the explicitly labeled foundation preview until
-native startup and the remaining feature screens are composed.
+Pass it as `MinutroveApp(home: homeShell)` from the composition root in
+`app_startup.dart`, which also supplies a `routeHome` stream so completion
+notification taps select Home from any tab.
 
 ```dart
 final homeShell = HomeShell(

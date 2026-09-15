@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'app.dart';
+import 'app_startup.dart';
 
-void main() {
-  runApp(const MinutroveApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MinutroveStartup());
 }
