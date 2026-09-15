@@ -69,7 +69,11 @@ fi
 # Denial pass: revoking a runtime permission while the app process runs kills
 # it, so the permission flips while nothing is running and the denial class
 # starts fresh inside the denied state. The main suite passed above with the
-# permission granted; restore it afterwards for reproducible follow-up runs.
+# permission granted; gradle's connected task uninstalls both APKs afterwards,
+# so reinstall them before the direct instrumentation call, and restore the
+# permission afterwards for reproducible follow-up runs.
+"$SDK_ROOT/platform-tools/adb" install -r build/app/outputs/flutter-apk/app-debug.apk >/dev/null
+"$SDK_ROOT/platform-tools/adb" install -r build/app/outputs/apk/androidTest/debug/app-debug-androidTest.apk >/dev/null
 "$SDK_ROOT/platform-tools/adb" shell pm revoke io.github.vanzeph.minutrove android.permission.POST_NOTIFICATIONS
 "$SDK_ROOT/platform-tools/adb" shell am instrument -w -e class io.github.vanzeph.minutrove.NotificationDenialTest io.github.vanzeph.minutrove.test/androidx.test.runner.AndroidJUnitRunner
 "$SDK_ROOT/platform-tools/adb" shell pm grant io.github.vanzeph.minutrove android.permission.POST_NOTIFICATIONS
