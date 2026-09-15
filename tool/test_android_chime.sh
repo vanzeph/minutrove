@@ -30,11 +30,12 @@ done
 # property or the user manager reporting the running user as unlocked.
 ADB="$SDK_ROOT/platform-tools/adb"
 user_unlocked() {
-  [[ "$("$ADB" shell getprop sys.user.0.unlock_completed | tr -d '\r')" == 1 ]] && return 0
-  # Some images never set the unlock property; the user manager state is the
-  # authoritative signal (e.g. "Started users state: [0=RUNNING_UNLOCKED]").
-  "$ADB" shell dumpsys user 2>/dev/null | tr -d '\r' | \
-    grep -Eq 'State: RUNNING_UNLOCKED|0=RUNNING_UNLOCKED' && return 0
+  # Capture the whole output before matching: grep -q closes the pipe early,
+  # and with pipefail the truncated pipeline reports failure even on a match.
+  local users
+  users="$("$ADB" shell dumpsys user 2>/dev/null | tr -d '\r' || true)"
+  [[ "$users" == *"RUNNING_UNLOCKED"* ]] && return 0
+  [[ "$("$ADB" shell getprop sys.user.0.unlock_completed 2>/dev/null | tr -d '\r' || true)" == 1 ]] && return 0
   return 1
 }
 "$ADB" wait-for-device
