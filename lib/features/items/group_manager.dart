@@ -181,7 +181,7 @@ class _GroupManagerState extends State<GroupManager> {
                 );
               }
               if (!groupsSnapshot.hasData || !itemsSnapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: TroveActivityIndicator());
               }
               final groups = List<Group>.of(groupsSnapshot.data!)
                 ..sort((a, b) {

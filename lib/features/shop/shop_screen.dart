@@ -95,7 +95,7 @@ class _ShopScreenState extends State<ShopScreen> {
           Text('Reward Shop', style: TroveTokens.title),
           const SizedBox(height: 12),
           const Text('Turn your effort into something good.'),
-          if (_error != null) Text(_error!),
+          if (_error != null) Semantics(liveRegion: true, child: Text(_error!)),
           const SizedBox(height: 20),
           if (failed) ...[
             const Text('Could not load the catalog and balances.'),
@@ -104,7 +104,7 @@ class _ShopScreenState extends State<ShopScreen> {
               onPressed: () => setState(() => _stream = _watch()),
             ),
           ] else if (data == null)
-            const Center(child: CircularProgressIndicator())
+            const Center(child: TroveActivityIndicator())
           else if (offers.isEmpty) ...[
             Text('Your next reward starts here.', style: TroveTokens.heading),
             const SizedBox(height: 12),

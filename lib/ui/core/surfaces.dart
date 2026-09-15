@@ -98,6 +98,33 @@ class TroveButton extends StatelessWidget {
         );
 }
 
+/// Loading affordance for indeterminate waits. Normally the standard spinner;
+/// when the user disabled animations at the OS level it becomes a static,
+/// screen-reader labelled placeholder so nothing continuously moves.
+/// Determinate progress that carries information (for example the session
+/// countdown ring) is not replaced by this widget.
+class TroveActivityIndicator extends StatelessWidget {
+  const TroveActivityIndicator({super.key, this.label = 'Loading'});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.disableAnimationsOf(context)) {
+      // The text itself is the accessibility label; no wrapping Semantics
+      // node, which would double-announce it when merged.
+      return Padding(
+        padding: const EdgeInsets.all(8),
+        child: Text(
+          label,
+          style: TroveTokens.caption.copyWith(color: TroveTokens.muted),
+        ),
+      );
+    }
+    return Semantics(label: label, child: const CircularProgressIndicator());
+  }
+}
+
 /// Wrap paired controls into a column on small phones or at enlarged text.
 class TroveFormRow extends StatelessWidget {
   const TroveFormRow({super.key, required this.children});

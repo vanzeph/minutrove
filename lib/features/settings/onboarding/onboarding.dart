@@ -209,7 +209,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             child: Text(_zone!.ianaName),
           ),
         ),
-      if (_error != null) ...[const SizedBox(height: 12), Text(_error!)],
+      if (_error != null) ...[
+        const SizedBox(height: 12),
+        Semantics(liveRegion: true, child: Text(_error!)),
+      ],
       const SizedBox(height: 20),
       TroveButton(
         label: _zoneChanged ? 'Save timezone and continue' : 'Continue',

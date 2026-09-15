@@ -1,13 +1,18 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 /// Shared visual values; appearance never encodes an item's behavior.
 abstract final class TroveTokens {
   static const paper = Color(0xfff8f7f2);
   static const ink = Color(0xff203b32);
-  static const muted = Color(0xff69766f);
+  // Measured WCAG ratios: 4.84:1 on paper and 5.19:1 on white, so small
+  // secondary text stays above the 4.5:1 AA threshold on both surfaces.
+  static const muted = Color(0xff637068);
   static const line = Color(0xffdde4dd);
   static const primary = Color(0xff23755a);
-  static const coin = Color(0xff9a6908);
+  // Measured WCAG ratios on the page surfaces: 4.60:1 on paper and 4.93:1 on
+  // white, so coin values stay above the 4.5:1 AA threshold everywhere.
+  static const coin = Color(0xff976707);
   static const gem = Color(0xff7654a5);
   static const space8 = 8.0;
   static const space12 = 12.0;
@@ -59,6 +64,19 @@ abstract final class TroveTokens {
       fontFamily: 'Nunito Sans',
       colorScheme: scheme,
       scaffoldBackgroundColor: paper,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          // The SDK's stock builders animate regardless of the platform's
+          // reduced-motion setting; wrap them so routes swap in place when
+          // the user disabled animations.
+          TargetPlatform.android: _ReducedMotionPageTransitions(
+            ZoomPageTransitionsBuilder(),
+          ),
+          TargetPlatform.iOS: _ReducedMotionPageTransitions(
+            CupertinoPageTransitionsBuilder(),
+          ),
+        },
+      ),
       textTheme: const TextTheme(
         headlineLarge: title,
         titleLarge: heading,
@@ -107,6 +125,33 @@ abstract final class TroveTokens {
       ),
     );
   }
+}
+
+/// Delegates to the platform's normal transition, except when the user asked
+/// the OS for reduced motion: then the route content swaps in place with no
+/// slide, zoom or fade movement. The engine's `disableAnimations` flag is
+/// populated from iOS Reduce Motion and Android remove-animations settings.
+class _ReducedMotionPageTransitions extends PageTransitionsBuilder {
+  const _ReducedMotionPageTransitions(this.fallback);
+
+  final PageTransitionsBuilder fallback;
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => (MediaQuery.maybeDisableAnimationsOf(context) ?? false)
+      ? child
+      : fallback.buildTransitions(
+          route,
+          context,
+          animation,
+          secondaryAnimation,
+          child,
+        );
 }
 
 @immutable

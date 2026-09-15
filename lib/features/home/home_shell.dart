@@ -399,7 +399,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 ),
               )
             : data == null
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: TroveActivityIndicator())
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

@@ -353,7 +353,7 @@ class _ItemEditorState extends State<ItemEditor> {
                 future: _facts,
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(child: TroveActivityIndicator());
                   }
                   final result = snapshot.data!;
                   if (result is Failure<ItemEditFacts>) {
@@ -381,7 +381,7 @@ class _ItemEditorState extends State<ItemEditor> {
                         );
                       }
                       if (!groups.hasData) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const Center(child: TroveActivityIndicator());
                       }
                       return _buildForm(facts, groups.data!);
                     },

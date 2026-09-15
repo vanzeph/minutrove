@@ -102,7 +102,7 @@ class _RedemptionDialogState extends State<RedemptionDialog> {
                 const Text('Could not load the current offer and wallet.'),
                 TroveButton(label: 'Retry loading', onPressed: p.reload),
               ] else if (p.data == null)
-                const Center(child: CircularProgressIndicator())
+                const Center(child: TroveActivityIndicator())
               else if (!p.available)
                 const Text('This Award is no longer available for purchase.')
               else if (config is AwardConfiguration) ...[
