@@ -26,6 +26,10 @@ done
 [[ "$("$SDK_ROOT/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r')" == 1 ]] || { echo 'Emulator boot timed out'; exit 1; }
 # boot_completed alone can precede credential-encrypted storage availability;
 # runtime permission grants and notification posts fail while user 0 is locked.
+# Headless google_apis images rest on a non-secure keyguard, so dismiss it and
+# wait for the user to actually unlock.
+"$SDK_ROOT/platform-tools/adb" shell wm dismiss-keyguard || true
+"$SDK_ROOT/platform-tools/adb" shell input keyevent 82 || true
 for attempt in $(seq 1 60); do
   if [[ "$("$SDK_ROOT/platform-tools/adb" shell getprop sys.user.0.unlock_completed | tr -d '\r')" == 1 ]]; then break; fi
   sleep 2
