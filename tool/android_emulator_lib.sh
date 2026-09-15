@@ -21,10 +21,13 @@ minutrove_emulator_boot() {
   SDK_ROOT="${ANDROID_HOME:?Android SDK is required}"
   local image="system-images;android-${api};google_apis;${abi}"
   # Recent SDK tools and emulator releases may choose different default homes.
-  # Use one explicit AVD registry and image directory per boot.
+  # Use one explicit AVD registry and image directory per boot. The oldest
+  # images (API 24 era) also declare a dependency on the emulator package
+  # itself; installing it explicitly keeps avdmanager satisfied on every
+  # runner image.
   export ANDROID_AVD_HOME="${RUNNER_TEMP:-/tmp}/minutrove-avd-${name}"
   mkdir -p "$ANDROID_AVD_HOME"
-  printf 'y\n' | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "$image" >/dev/null
+  printf 'y\n' | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" 'emulator' "$image" >/dev/null
   printf 'no\n' | "$SDK_ROOT/cmdline-tools/latest/bin/avdmanager" create avd \
     --force --name "$name" --path "$ANDROID_AVD_HOME/${name}.avd" --package "$image"
   # Modern images default to a userdata partition several GB in size; the
