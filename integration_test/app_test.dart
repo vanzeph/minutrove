@@ -21,6 +21,7 @@ import 'package:minutrove/platform/sessions/session_recovery.dart';
 import 'package:sqflite/sqflite.dart' show databaseFactory;
 
 import '../test/data/support.dart' as f;
+import '../test/support/product_journeys.dart';
 import '../test/support/session_fixtures.dart';
 import '../test/support/backup_portability.dart' as p;
 
@@ -648,4 +649,57 @@ void main() {
       }
     });
   }
+  // The full product acceptance journeys run here over the real on-device
+  // SQLite plugin, the real composition root and the real screens; only the
+  // clock and notification scheduler are deterministic fixtures. The widget
+  // suite runs the same journeys over an isolated ffi database.
+  Future<void> journey(
+    WidgetTester tester,
+    Future<void> Function(WidgetTester, JourneyFixture) run,
+  ) async {
+    final fixture = JourneyFixture(
+      factory: databaseFactory,
+      chime: CompletionChime(),
+    );
+    await fixture.create();
+    try {
+      await run(tester, fixture);
+    } finally {
+      await fixture.destroy();
+    }
+  }
+
+  testWidgets('native journey: exact earnings through restart', (tester) async {
+    await journey(tester, journeyEarnPauseSplitCompleteRestart);
+  });
+
+  testWidgets('native journey: variants and appearance independence', (
+    tester,
+  ) async {
+    await journey(tester, journeyVariantsAndAppearanceIndependence);
+  });
+
+  testWidgets('native journey: one session slot conflicts', (tester) async {
+    await journey(tester, journeyOneSessionConflict);
+  });
+
+  testWidgets('native journey: purchase pooling and idempotency', (
+    tester,
+  ) async {
+    await journey(tester, journeyPurchasePoolingAndIdempotency);
+  });
+
+  testWidgets('native journey: expense budgets and exhaustion', (tester) async {
+    await journey(tester, journeyExpenseBudgetAndExhaustion);
+  });
+
+  testWidgets('native journey: double tap configures', (tester) async {
+    await journey(tester, journeyDoubleTapConfigures);
+  });
+
+  testWidgets('native journey: stats filters agree with the ledger', (
+    tester,
+  ) async {
+    await journey(tester, journeyStatsAgreesWithLedger);
+  });
 }

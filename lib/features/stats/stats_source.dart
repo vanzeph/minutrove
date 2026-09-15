@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../data/data.dart';
 import '../../domain/domain.dart';
 import 'stats_model.dart';
@@ -13,17 +15,29 @@ class SqliteStatsSource implements StatsSource {
   SqliteStatsSource({
     required this.store,
     required this.calendar,
-    DateTime Function()? utcNow,
+    FutureOr<DateTime> Function()? utcNow,
   }) : utcNow = utcNow ?? (() => DateTime.now().toUtc());
   final SqliteStore store;
   final ReportingCalendar calendar;
-  final DateTime Function() utcNow;
+  final FutureOr<DateTime> Function() utcNow;
 
   Future<StatsContext> _context(StoreReader reader) async {
     final settings = await reader.settings();
+    final items = await reader.items();
+    // The reading is awaited only when the clock is genuinely asynchronous;
+    // a synchronous clock (every deterministic fixture) must not add even one
+    // extra microtask hop here. This reader runs inside the store's serialized
+    // watch-refresh chain on every commit, and the runAsync-driven widget
+    // tests deadlock if the refresh path suspends on a fake-zone microtask.
+    final now = utcNow();
     return StatsContext(
-      items: await reader.items(),
-      today: calendar.assign(utcNow(), settings.reportingZone).day,
+      items: items,
+      today: calendar
+          .assign(
+            now is Future<DateTime> ? await now : now,
+            settings.reportingZone,
+          )
+          .day,
       zone: settings.reportingZone,
     );
   }
